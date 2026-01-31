@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home - Smart College Bus Tracking{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 100px 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("{% static 'images/bus-pattern.png' %}") repeat;
+        opacity: 0.1;
+    }
+    
+    .feature-card {
+        border: none;
+        border-radius: 15px;
+        transition: transform 0.3s, box-shadow 0.3s;
+        height: 100%;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .feature-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 30px;
+    }
+    
+    .cta-section {
+        background-color: #f8f9fa;
+        padding: 80px 0;
+    }
+    
+    .stats-card {
+        text-align: center;
+        padding: 30px;
+        border-radius: 10px;
+        background: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #4361ee;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container position-relative">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Track Your College Bus in Real-Time</h1>
+                <p class="lead mb-4">
+                    Never miss your bus again! Our smart tracking system provides real-time location updates, 
+                    estimated arrival times, and instant notifications.
+                </p>
+                <div class="d-flex gap-3">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg px-4">
+                            <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+                        </a>
+                    {% else %}
+                        <a href="{% url 'register' %}" class="btn btn-light btn-lg px-4">
+                            <i class="fas fa-user-plus me-2"></i>Get Started
+                        </a>
+                        <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <img src="{% static 'images/bus-hero.png' %}" alt="Bus Tracking" class="img-fluid">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-3">Why Choose Smart Bus Tracking?</h2>
+            <p class="text-muted">Experience seamless bus tracking with our advanced features</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-primary text-white">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <h4 class="card-title">Real-Time Tracking</h4>
+                        <p class="card-text text-muted">
+                            Track your bus location in real-time on an interactive map with live updates every few seconds.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-success text-white">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h4 class="card-title">Smart Notifications</h4>
+                        <p class="card-text text-muted">
+                            Get instant notifications for bus arrivals, delays, route changes, and emergency alerts.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card feature-card">
+                    <div class="card-body text-center p-4">
+                        <div class="feature-icon bg-info text-white">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h4 class="card-title">Multi-User Platform</h4>
+                        <p class="card-text text-muted">
+                            Separate interfaces for students, drivers, parents, and administrators with role-based access.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-3 col-6">
+                <div class="stats-card">
+                    <span class="stats-number" id="activeBuses">0</span>
+                    <span class="text-muted">Active Buses</span>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stats-card">
+                    <span class="stats-number" id="totalStudents">0</span>
+                    <span class="text-muted">Students</span>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stats-card">
+                    <span class="stats-number" id="totalRoutes">0</span>
+                    <span class="text-muted">Routes</span>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stats-card">
+                    <span class="stats-number" id="onTimeRate">98%</span>
+                    <span class="text-muted">On-Time Rate</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-3">How It Works</h2>
+            <p class="text-muted">Simple steps to track your bus</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="text-center">
+                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px; margin-bottom: 20px;">
+                        <span class="text-white fw-bold fs-4">1</span>
+                    </div>
+                    <h5>Register/Login</h5>
+                    <p class="text-muted">Create your account based on your role (student, driver, etc.)</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="text-center">
+                    <div class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px; margin-bottom: 20px;">
+                        <span class="text-white fw-bold fs-4">2</span>
+                    </div>
+                    <h5>Get Assigned</h5>
+                    <p class="text-muted">Students get assigned to buses, drivers get assigned vehicles</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="text-center">
+                    <div class="bg-info rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px; margin-bottom: 20px;">
+                        <span class="text-white fw-bold fs-4">3</span>
+                    </div>
+                    <h5>Track Live</h5>
+                    <p class="text-muted">View real-time bus location on interactive maps</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="text-center">
+                    <div class="bg-warning rounded-circle d-inline-flex align-items-center justify-content-center" 
+                         style="width: 80px; height: 80px; margin-bottom: 20px;">
+                        <span class="text-white fw-bold fs-4">4</span>
+                    </div>
+                    <h5>Get Notified</h5>
+                    <p class="text-muted">Receive alerts for arrivals, delays, and important updates</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <div class="container text-center">
+        <h2 class="fw-bold mb-4">Ready to Never Miss Your Bus Again?</h2>
+        <p class="lead mb-4 text-muted">
+            Join thousands of students and parents who trust our smart bus tracking system
+        </p>
+        {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-rocket me-2"></i>Go to Dashboard
+            </a>
+        {% else %}
+            <a href="{% url 'register' %}" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-user-plus me-2"></i>Sign Up Free
+            </a>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animate stats counter
+    function animateCounter(elementId, targetValue, duration = 2000) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        let start = 0;
+        const increment = targetValue / (duration / 16);
+        const timer = setInterval(() => {
+            start += increment;
+            if (start >= targetValue) {
+                element.textContent = targetValue;
+                clearInterval(timer);
+            } else {
+                element.textContent = Math.floor(start);
+            }
+        }, 16);
+    }
+    
+    // Load stats from API
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch stats (you'll need to create this API endpoint)
+        fetch('/api/public/stats/')
+            .then(response => response.json())
+            .then(data => {
+                animateCounter('activeBuses', data.active_buses || 12);
+                animateCounter('totalStudents', data.total_students || 1500);
+                animateCounter('totalRoutes', data.total_routes || 8);
+            })
+            .catch(() => {
+                // Fallback values if API fails
+                animateCounter('activeBuses', 12);
+                animateCounter('totalStudents', 1500);
+                animateCounter('totalRoutes', 8);
+            });
+    });
+</script>
+{% endblock %}

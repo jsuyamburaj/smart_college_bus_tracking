@@ -1,0 +1,700 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard - Smart College Bus Tracking{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-card {
+        border: none;
+        border-radius: 15px;
+        transition: transform 0.3s, box-shadow 0.3s;
+        height: 100%;
+    }
+    
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+    
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+    
+    .stats-change {
+        font-size: 0.85rem;
+    }
+    
+    .stats-change.positive {
+        color: #28a745;
+    }
+    
+    .stats-change.negative {
+        color: #dc3545;
+    }
+    
+    #adminMap {
+        height: 400px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .recent-activity {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .activity-item {
+        border-left: 3px solid #4361ee;
+        padding-left: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .activity-time {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .quick-action-btn {
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        border: 2px solid transparent;
+        transition: all 0.3s;
+    }
+    
+    .quick-action-btn:hover {
+        border-color: #4361ee;
+        transform: translateY(-2px);
+    }
+    
+    .quick-action-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin: 0 auto 10px;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+    
+    .bus-marker {
+        background: #4361ee;
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        border: 3px solid white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 fw-bold mb-2">
+                        <i class="fas fa-tachometer-alt me-2 text-primary"></i>Admin Dashboard
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Welcome back, {{ user.get_full_name }}! Here's what's happening with your bus tracking system.
+                    </p>
+                </div>
+                <div>
+                    <span class="badge bg-primary fs-6">
+                        <i class="fas fa-user-shield me-1"></i>Administrator
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Total Buses</p>
+                            <h2 class="stats-number text-primary" id="totalBuses">0</h2>
+                            <span class="stats-change positive">
+                                <i class="fas fa-arrow-up me-1"></i>12% from last month
+                            </span>
+                        </div>
+                        <div class="card-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="fas fa-bus"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Active Buses</p>
+                            <h2 class="stats-number text-success" id="activeBuses">0</h2>
+                            <span class="stats-change positive">
+                                <i class="fas fa-arrow-up me-1"></i>8% from yesterday
+                            </span>
+                        </div>
+                        <div class="card-icon bg-success bg-opacity-10 text-success">
+                            <i class="fas fa-broadcast-tower"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Total Students</p>
+                            <h2 class="stats-number text-info" id="totalStudents">0</h2>
+                            <span class="stats-change positive">
+                                <i class="fas fa-arrow-up me-1"></i>5% from last week
+                            </span>
+                        </div>
+                        <div class="card-icon bg-info bg-opacity-10 text-info">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">On-Time Rate</p>
+                            <h2 class="stats-number text-warning" id="onTimeRate">0%</h2>
+                            <span class="stats-change negative">
+                                <i class="fas fa-arrow-down me-1"></i>2% from yesterday
+                            </span>
+                        </div>
+                        <div class="card-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map & Charts -->
+    <div class="row g-4 mb-4">
+        <!-- Live Bus Map -->
+        <div class="col-xl-8">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map-marked-alt me-2 text-primary"></i>Live Bus Locations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="adminMap"></div>
+                    <div class="mt-3">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="bus-marker me-3">B1</div>
+                                    <div>
+                                        <small class="text-muted d-block">Bus 1 - Route A</small>
+                                        <small class="fw-bold">45 km/h • 5 min late</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="bus-marker bg-success me-3">B2</div>
+                                    <div>
+                                        <small class="text-muted d-block">Bus 2 - Route B</small>
+                                        <small class="fw-bold">60 km/h • On time</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="bus-marker bg-warning me-3">B3</div>
+                                    <div>
+                                        <small class="text-muted d-block">Bus 3 - Route C</small>
+                                        <small class="fw-bold">30 km/h • 10 min late</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="col-xl-4">
+            <div class="card dashboard-card shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2 text-primary"></i>System Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="systemChart"></canvas>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="fw-bold text-primary" id="totalDrivers">0</h4>
+                                <small class="text-muted">Active Drivers</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h4 class="fw-bold text-success" id="totalRoutes">0</h4>
+                                <small class="text-muted">Active Routes</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions & Recent Activity -->
+    <div class="row g-4">
+        <!-- Quick Actions -->
+        <div class="col-xl-4">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2 text-primary"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <a href="{% url 'buses:add_bus' %}" class="btn btn-outline-primary quick-action-btn">
+                                <div class="quick-action-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="fas fa-bus"></i>
+                                </div>
+                                <small class="fw-bold d-block">Add New Bus</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" class="btn btn-outline-success quick-action-btn">
+                                <div class="quick-action-icon bg-success bg-opacity-10 text-success">
+                                    <i class="fas fa-user-plus"></i>
+                                </div>
+                                <small class="fw-bold d-block">Add Driver</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" class="btn btn-outline-info quick-action-btn">
+                                <div class="quick-action-icon bg-info bg-opacity-10 text-info">
+                                    <i class="fas fa-route"></i>
+                                </div>
+                                <small class="fw-bold d-block">Create Route</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" class="btn btn-outline-warning quick-action-btn">
+                                <div class="quick-action-icon bg-warning bg-opacity-10 text-warning">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <small class="fw-bold d-block">Generate Report</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" class="btn btn-outline-danger quick-action-btn">
+                                <div class="quick-action-icon bg-danger bg-opacity-10 text-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <small class="fw-bold d-block">View Alerts</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" class="btn btn-outline-secondary quick-action-btn">
+                                <div class="quick-action-icon bg-secondary bg-opacity-10 text-secondary">
+                                    <i class="fas fa-cog"></i>
+                                </div>
+                                <small class="fw-bold d-block">Settings</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="col-xl-8">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history me-2 text-primary"></i>Recent Activity
+                        </h5>
+                        <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="recent-activity" id="recentActivity">
+                        <!-- Activity items will be loaded here -->
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Notifications -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card dashboard-card shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-bell me-2 text-primary"></i>Recent Notifications
+                        </h5>
+                        <span class="badge bg-primary">
+                            <i class="fas fa-circle me-1"></i>
+                            <span id="unreadCount">0</span> Unread
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Message</th>
+                                    <th>Bus/Route</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="notificationsTable">
+                                <!-- Notifications will be loaded here -->
+                                <tr>
+                                    <td colspan="6" class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Initialize map
+    let adminMap;
+    let busMarkers = [];
+    
+    function initAdminMap() {
+        // Default center (set to your college location)
+        const collegeLocation = [20.5937, 78.9629]; // Center of India
+        
+        adminMap = L.map('adminMap').setView(collegeLocation, 13);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(adminMap);
+        
+        // Load bus locations
+        loadBusLocations();
+        
+        // Refresh bus locations every 30 seconds
+        setInterval(loadBusLocations, 30000);
+    }
+    
+    function loadBusLocations() {
+        fetch('/api/public/bus-locations/')
+            .then(response => response.json())
+            .then(data => {
+                // Clear existing markers
+                busMarkers.forEach(marker => adminMap.removeLayer(marker));
+                busMarkers = [];
+                
+                // Add new markers
+                data.locations.forEach(bus => {
+                    const marker = L.marker([bus.latitude, bus.longitude])
+                        .addTo(adminMap)
+                        .bindPopup(`
+                            <strong>${bus.bus_number}</strong><br>
+                            Driver: ${bus.driver || 'Not assigned'}<br>
+                            Speed: ${bus.speed} km/h<br>
+                            Status: ${bus.status}<br>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="trackBus(${bus.bus_id})">
+                                Track Bus
+                            </button>
+                        `);
+                    
+                    busMarkers.push(marker);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading bus locations:', error);
+            });
+    }
+    
+    function trackBus(busId) {
+        window.open(`/tracking/track-bus/${busId}/`, '_blank');
+    }
+    
+    // Initialize system chart
+    function initSystemChart() {
+        const ctx = document.getElementById('systemChart').getContext('2d');
+        const systemChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Active', 'Maintenance', 'Inactive', 'No Tracking'],
+                datasets: [{
+                    data: [12, 2, 1, 0],
+                    backgroundColor: [
+                        '#4361ee',
+                        '#4cc9f0',
+                        '#f72585',
+                        '#adb5bd'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    }
+    
+    // Load dashboard stats
+    function loadDashboardStats() {
+        fetch('/api/dashboard/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.stats) {
+                    const stats = data.stats;
+                    
+                    // Update stats cards
+                    document.getElementById('totalBuses').textContent = stats.total_buses || 0;
+                    document.getElementById('activeBuses').textContent = stats.active_buses || 0;
+                    document.getElementById('totalStudents').textContent = stats.total_students || 0;
+                    document.getElementById('onTimeRate').textContent = (stats.on_time_rate || 98) + '%';
+                    document.getElementById('totalDrivers').textContent = stats.total_drivers || 0;
+                    document.getElementById('totalRoutes').textContent = stats.total_routes || 0;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading dashboard stats:', error);
+            });
+    }
+    
+    // Load recent activity
+    function loadRecentActivity() {
+        fetch('/api/locations/?limit=10')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('recentActivity');
+                container.innerHTML = '';
+                
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(activity => {
+                        const time = new Date(activity.timestamp).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        
+                        const activityItem = document.createElement('div');
+                        activityItem.className = 'activity-item';
+                        activityItem.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">Bus ${activity.bus_number} location updated</h6>
+                                    <p class="mb-1 text-muted">
+                                        Speed: ${activity.speed} km/h • 
+                                        Location: ${activity.latitude.toFixed(4)}, ${activity.longitude.toFixed(4)}
+                                    </p>
+                                </div>
+                                <div class="activity-time">${time}</div>
+                            </div>
+                        `;
+                        container.appendChild(activityItem);
+                    });
+                } else {
+                    container.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No recent activity found</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading recent activity:', error);
+            });
+    }
+    
+    // Load notifications
+    function loadNotifications() {
+        fetch('/api/notifications/')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('notificationsTable');
+                tableBody.innerHTML = '';
+                
+                if (data.notifications && data.notifications.length > 0) {
+                    data.notifications.forEach(notification => {
+                        const row = document.createElement('tr');
+                        if (!notification.is_read) {
+                            row.classList.add('table-info');
+                        }
+                        
+                        row.innerHTML = `
+                            <td>
+                                <span class="badge bg-${getPriorityColor(notification.priority)}">
+                                    ${notification.type_display}
+                                </span>
+                            </td>
+                            <td>${notification.message}</td>
+                            <td>
+                                ${notification.bus ? 'Bus ' + notification.bus.number : '-'}
+                            </td>
+                            <td>${notification.time_ago}</td>
+                            <td>
+                                ${notification.is_read ? 
+                                    '<span class="badge bg-success">Read</span>' : 
+                                    '<span class="badge bg-warning">Unread</span>'}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="markNotificationRead(${notification.id})">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                    
+                    // Update unread count
+                    document.getElementById('unreadCount').textContent = data.unread_count || 0;
+                } else {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fas fa-bell-slash fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No notifications found</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+            });
+    }
+    
+    function getPriorityColor(priority) {
+        const colors = {
+            'urgent': 'danger',
+            'high': 'warning',
+            'medium': 'info',
+            'low': 'secondary'
+        };
+        return colors[priority] || 'secondary';
+    }
+    
+    function markNotificationRead(notificationId) {
+        fetch(`/api/notifications/mark-read/${notificationId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadNotifications();
+            }
+        })
+        .catch(error => {
+            console.error('Error marking notification as read:', error);
+        });
+    }
+    
+    // Initialize everything when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initAdminMap();
+        initSystemChart();
+        loadDashboardStats();
+        loadRecentActivity();
+        loadNotifications();
+        
+        // Refresh data every minute
+        setInterval(() => {
+            loadDashboardStats();
+            loadRecentActivity();
+            loadNotifications();
+        }, 60000);
+    });
+</script>
+{% endblock %}

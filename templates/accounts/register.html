@@ -1,0 +1,778 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register - Smart College Bus Tracking{% endblock %}
+
+{% block extra_css %}
+<style>
+    .register-container {
+        min-height: calc(100vh - 200px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px 0;
+    }
+    
+    .register-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        overflow: hidden;
+        width: 100%;
+        max-width: 800px;
+    }
+    
+    .register-header {
+        background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .register-body {
+        padding: 40px;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 10px;
+        padding: 12px 15px;
+        border: 1px solid #e1e5eb;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #4361ee;
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+    }
+    
+    .btn-register {
+        border-radius: 10px;
+        padding: 12px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+        border: none;
+    }
+    
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .step-indicator::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #e1e5eb;
+        z-index: 1;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+        flex: 1;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e1e5eb;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+    }
+    
+    .step.active .step-number {
+        background: #4361ee;
+        color: white;
+    }
+    
+    .step.completed .step-number {
+        background: #4cc9f0;
+        color: white;
+    }
+    
+    .step-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        text-align: center;
+    }
+    
+    .step.active .step-label {
+        color: #4361ee;
+        font-weight: 500;
+    }
+    
+    .form-step {
+        display: none;
+    }
+    
+    .form-step.active {
+        display: block;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .password-strength {
+        height: 4px;
+        background: #e1e5eb;
+        border-radius: 2px;
+        margin-top: 5px;
+        overflow: hidden;
+    }
+    
+    .password-strength-bar {
+        height: 100%;
+        width: 0;
+        transition: width 0.3s, background-color 0.3s;
+    }
+    
+    .password-requirements {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 10px;
+    }
+    
+    .password-requirements ul {
+        padding-left: 20px;
+        margin-bottom: 0;
+    }
+    
+    .password-requirements li {
+        margin-bottom: 5px;
+    }
+    
+    .password-requirements li.valid {
+        color: #28a745;
+    }
+    
+    .password-requirements li.valid::before {
+        content: '✓ ';
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card">
+        <div class="register-header">
+            <h2 class="mb-0">
+                <i class="fas fa-user-plus me-2"></i>Create Your Account
+            </h2>
+            <p class="mb-0 mt-2 opacity-75">Join our smart bus tracking community</p>
+        </div>
+        
+        <div class="register-body">
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step active" id="step1">
+                    <div class="step-number">1</div>
+                    <span class="step-label">Account Type</span>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-number">2</div>
+                    <span class="step-label">Personal Info</span>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-number">3</div>
+                    <span class="step-label">Credentials</span>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-number">4</div>
+                    <span class="step-label">Review</span>
+                </div>
+            </div>
+            
+            <!-- Registration Form -->
+            <form id="registerForm" method="post" action="{% url 'register' %}">
+                {% csrf_token %}
+                
+                <!-- Step 1: Account Type -->
+                <div class="form-step active" id="formStep1">
+                    <h4 class="mb-4">Select Your Account Type</h4>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card account-type-card h-100 border-2" 
+                                 data-type="student"
+                                 onclick="selectAccountType('student')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-graduation-cap fa-3x text-primary"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-2">Student</h5>
+                                    <p class="text-muted mb-0">
+                                        Track your bus, get notifications, view schedules
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card account-type-card h-100 border-2" 
+                                 data-type="parent"
+                                 onclick="selectAccountType('parent')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-users fa-3x text-success"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-2">Parent</h5>
+                                    <p class="text-muted mb-0">
+                                        Track your child's bus, receive alerts and updates
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card account-type-card h-100 border-2" 
+                                 data-type="driver"
+                                 onclick="selectAccountType('driver')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-bus fa-3x text-info"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-2">Driver</h5>
+                                    <p class="text-muted mb-0">
+                                        Update location, view routes, manage passengers
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card account-type-card h-100 border-2" 
+                                 data-type="admin"
+                                 onclick="selectAccountType('admin')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <i class="fas fa-cog fa-3x text-warning"></i>
+                                    </div>
+                                    <h5 class="fw-bold mb-2">Administrator</h5>
+                                    <p class="text-muted mb-0">
+                                        Manage system, users, buses, and view analytics
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="userType" name="user_type" required>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <div></div> <!-- Empty div for spacing -->
+                        <button type="button" class="btn btn-primary" onclick="nextStep()">
+                            Next <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Personal Information -->
+                <div class="form-step" id="formStep2">
+                    <h4 class="mb-4">Personal Information</h4>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="firstName" class="form-label fw-bold">First Name *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="firstName" 
+                                   name="first_name" 
+                                   required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="lastName" class="form-label fw-bold">Last Name *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="lastName" 
+                                   name="last_name" 
+                                   required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="email" class="form-label fw-bold">Email Address *</label>
+                            <input type="email" 
+                                   class="form-control" 
+                                   id="email" 
+                                   name="email" 
+                                   required>
+                            <div class="form-text">We'll never share your email with anyone else.</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label fw-bold">Phone Number *</label>
+                            <input type="tel" 
+                                   class="form-control" 
+                                   id="phone" 
+                                   name="phone" 
+                                   required
+                                   placeholder="+1 (555) 123-4567">
+                        </div>
+                        
+                        <!-- Student Specific Fields -->
+                        <div class="student-fields d-none">
+                            <div class="col-md-6">
+                                <label for="rollNumber" class="form-label fw-bold">Roll Number *</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="rollNumber" 
+                                       name="roll_number">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="department" class="form-label fw-bold">Department *</label>
+                                <select class="form-select" id="department" name="department">
+                                    <option value="">Select Department</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="Electrical Engineering">Electrical Engineering</option>
+                                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                    <option value="Civil Engineering">Civil Engineering</option>
+                                    <option value="Business Administration">Business Administration</option>
+                                    <option value="Arts & Sciences">Arts & Sciences</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="year" class="form-label fw-bold">Year *</label>
+                                <select class="form-select" id="year" name="year">
+                                    <option value="">Select Year</option>
+                                    <option value="1">First Year</option>
+                                    <option value="2">Second Year</option>
+                                    <option value="3">Third Year</option>
+                                    <option value="4">Fourth Year</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Driver Specific Fields -->
+                        <div class="driver-fields d-none">
+                            <div class="col-md-6">
+                                <label for="licenseNumber" class="form-label fw-bold">License Number *</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="licenseNumber" 
+                                       name="license_number">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="experience" class="form-label fw-bold">Experience (Years) *</label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="experience" 
+                                       name="experience" 
+                                       min="0" 
+                                       max="50">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep()">
+                            Next <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Credentials -->
+                <div class="form-step" id="formStep3">
+                    <h4 class="mb-4">Create Credentials</h4>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="username" class="form-label fw-bold">Username *</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="username" 
+                                   name="username" 
+                                   required>
+                            <div class="form-text">Choose a unique username (letters, numbers, underscores)</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="confirmPassword" class="form-label fw-bold">Confirm Password *</label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="confirmPassword" 
+                                   name="password2" 
+                                   required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="password" class="form-label fw-bold">Password *</label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="password" 
+                                   name="password1" 
+                                   required>
+                            <div class="password-strength">
+                                <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                            </div>
+                            <div class="password-requirements">
+                                <ul class="mb-0" id="passwordRequirements">
+                                    <li id="reqLength">At least 8 characters</li>
+                                    <li id="reqUpper">Contains uppercase letter</li>
+                                    <li id="reqLower">Contains lowercase letter</li>
+                                    <li id="reqNumber">Contains number</li>
+                                    <li id="reqSpecial">Contains special character</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="terms" 
+                                   name="terms" 
+                                   required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the 
+                                <a href="#" class="text-decoration-none">Terms of Service</a> 
+                                and 
+                                <a href="#" class="text-decoration-none">Privacy Policy</a>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep()">
+                            Next <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Review -->
+                <div class="form-step" id="formStep4">
+                    <h4 class="mb-4">Review Your Information</h4>
+                    
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-muted mb-3">Account Details</h6>
+                                    <p><strong>Account Type:</strong> <span id="reviewType"></span></p>
+                                    <p><strong>Username:</strong> <span id="reviewUsername"></span></p>
+                                    <p><strong>Email:</strong> <span id="reviewEmail"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-muted mb-3">Personal Information</h6>
+                                    <p><strong>Name:</strong> <span id="reviewName"></span></p>
+                                    <p><strong>Phone:</strong> <span id="reviewPhone"></span></p>
+                                    <div id="reviewAdditional"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Please review all information before submitting. You won't be able to change 
+                        your account type after registration.
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                            <i class="fas fa-arrow-left me-2"></i>Back
+                        </button>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-check me-2"></i>Complete Registration
+                        </button>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Already have account -->
+            <div class="text-center mt-4">
+                <p class="mb-0">
+                    Already have an account?
+                    <a href="{% url 'login' %}" class="text-decoration-none fw-bold text-primary">
+                        Sign in here
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentStep = 1;
+    const totalSteps = 4;
+    let selectedAccountType = '';
+    
+    // Account type selection
+    function selectAccountType(type) {
+        selectedAccountType = type;
+        
+        // Update UI
+        document.querySelectorAll('.account-type-card').forEach(card => {
+            card.classList.remove('border-primary');
+            card.style.borderColor = '#e1e5eb';
+        });
+        
+        const selectedCard = document.querySelector(`[data-type="${type}"]`);
+        selectedCard.classList.add('border-primary');
+        selectedCard.style.borderColor = '#4361ee';
+        
+        // Update hidden field
+        document.getElementById('userType').value = type;
+        
+        // Show/hide specific fields
+        document.querySelectorAll('.student-fields, .driver-fields').forEach(field => {
+            field.classList.add('d-none');
+        });
+        
+        if (type === 'student') {
+            document.querySelector('.student-fields').classList.remove('d-none');
+        } else if (type === 'driver') {
+            document.querySelector('.driver-fields').classList.remove('d-none');
+        }
+    }
+    
+    // Step navigation
+    function nextStep() {
+        if (!validateStep(currentStep)) {
+            return;
+        }
+        
+        if (currentStep < totalSteps) {
+            // Hide current step
+            document.getElementById(`formStep${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            
+            // Show next step
+            currentStep++;
+            document.getElementById(`formStep${currentStep}`).classList.add('active');
+            document.getElementById(`step${currentStep}`).classList.add('active');
+            
+            // Update step indicators
+            for (let i = 1; i < currentStep; i++) {
+                document.getElementById(`step${i}`).classList.add('completed');
+            }
+            
+            // If we're on the review step, update the review info
+            if (currentStep === 4) {
+                updateReviewInfo();
+            }
+        }
+    }
+    
+    function prevStep() {
+        if (currentStep > 1) {
+            // Hide current step
+            document.getElementById(`formStep${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            
+            // Show previous step
+            currentStep--;
+            document.getElementById(`formStep${currentStep}`).classList.add('active');
+            document.getElementById(`step${currentStep}`).classList.add('active');
+        }
+    }
+    
+    // Step validation
+    function validateStep(step) {
+        switch(step) {
+            case 1:
+                if (!selectedAccountType) {
+                    alert('Please select an account type.');
+                    return false;
+                }
+                break;
+                
+            case 2:
+                const firstName = document.getElementById('firstName').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                
+                if (!firstName || !lastName || !email || !phone) {
+                    alert('Please fill in all required personal information fields.');
+                    return false;
+                }
+                
+                // Email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    alert('Please enter a valid email address.');
+                    return false;
+                }
+                
+                // Validate specific fields based on account type
+                if (selectedAccountType === 'student') {
+                    const rollNumber = document.getElementById('rollNumber').value.trim();
+                    const department = document.getElementById('department').value;
+                    const year = document.getElementById('year').value;
+                    
+                    if (!rollNumber || !department || !year) {
+                        alert('Please fill in all student-specific fields.');
+                        return false;
+                    }
+                } else if (selectedAccountType === 'driver') {
+                    const licenseNumber = document.getElementById('licenseNumber').value.trim();
+                    const experience = document.getElementById('experience').value;
+                    
+                    if (!licenseNumber || !experience) {
+                        alert('Please fill in all driver-specific fields.');
+                        return false;
+                    }
+                }
+                break;
+                
+            case 3:
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const terms = document.getElementById('terms').checked;
+                
+                if (!username || !password || !confirmPassword) {
+                    alert('Please fill in all credential fields.');
+                    return false;
+                }
+                
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match.');
+                    return false;
+                }
+                
+                if (!isPasswordStrong(password)) {
+                    alert('Please choose a stronger password.');
+                    return false;
+                }
+                
+                if (!terms) {
+                    alert('You must agree to the Terms of Service and Privacy Policy.');
+                    return false;
+                }
+                break;
+        }
+        return true;
+    }
+    
+    // Password strength checker
+    function isPasswordStrong(password) {
+        const requirements = {
+            length: password.length >= 8,
+            upper: /[A-Z]/.test(password),
+            lower: /[a-z]/.test(password),
+            number: /\d/.test(password),
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        };
+        
+        // Update UI
+        Object.keys(requirements).forEach(req => {
+            const element = document.getElementById(`req${req.charAt(0).toUpperCase() + req.slice(1)}`);
+            if (requirements[req]) {
+                element.classList.add('valid');
+            } else {
+                element.classList.remove('valid');
+            }
+        });
+        
+        // Calculate strength
+        const metRequirements = Object.values(requirements).filter(Boolean).length;
+        const strengthPercentage = (metRequirements / 5) * 100;
+        
+        const strengthBar = document.getElementById('passwordStrengthBar');
+        strengthBar.style.width = `${strengthPercentage}%`;
+        
+        // Color based on strength
+        if (strengthPercentage < 40) {
+            strengthBar.style.backgroundColor = '#dc3545'; // Red
+        } else if (strengthPercentage < 70) {
+            strengthBar.style.backgroundColor = '#ffc107'; // Yellow
+        } else {
+            strengthBar.style.backgroundColor = '#28a745'; // Green
+        }
+        
+        return metRequirements >= 4; // At least 4 requirements met
+    }
+    
+    // Update review information
+    function updateReviewInfo() {
+        document.getElementById('reviewType').textContent = 
+            selectedAccountType.charAt(0).toUpperCase() + selectedAccountType.slice(1);
+        document.getElementById('reviewUsername').textContent = 
+            document.getElementById('username').value;
+        document.getElementById('reviewEmail').textContent = 
+            document.getElementById('email').value;
+        document.getElementById('reviewName').textContent = 
+            `${document.getElementById('firstName').value} ${document.getElementById('lastName').value}`;
+        document.getElementById('reviewPhone').textContent = 
+            document.getElementById('phone').value;
+        
+        // Additional info based on account type
+        let additionalHTML = '';
+        if (selectedAccountType === 'student') {
+            additionalHTML = `
+                <p><strong>Roll Number:</strong> ${document.getElementById('rollNumber').value}</p>
+                <p><strong>Department:</strong> ${document.getElementById('department').value}</p>
+                <p><strong>Year:</strong> ${document.getElementById('year').value}</p>
+            `;
+        } else if (selectedAccountType === 'driver') {
+            additionalHTML = `
+                <p><strong>License Number:</strong> ${document.getElementById('licenseNumber').value}</p>
+                <p><strong>Experience:</strong> ${document.getElementById('experience').value} years</p>
+            `;
+        }
+        document.getElementById('reviewAdditional').innerHTML = additionalHTML;
+    }
+    
+    // Real-time password strength check
+    document.getElementById('password')?.addEventListener('input', function() {
+        isPasswordStrong(this.value);
+    });
+    
+    // Form submission
+    document.getElementById('registerForm')?.addEventListener('submit', function(e) {
+        if (!validateStep(3)) {
+            e.preventDefault();
+            alert('Please complete all steps correctly.');
+        }
+    });
+    
+    // Auto-format phone number
+    document.getElementById('phone')?.addEventListener('input', function(e) {
+        let value = this.value.replace(/\D/g, '');
+        if (value.length > 0) {
+            value = '+1 (' + value;
+            if (value.length > 7) {
+                value = value.slice(0, 7) + ') ' + value.slice(7);
+            }
+            if (value.length > 12) {
+                value = value.slice(0, 12) + '-' + value.slice(12, 16);
+            }
+        }
+        this.value = value;
+    });
+</script>
+{% endblock %}

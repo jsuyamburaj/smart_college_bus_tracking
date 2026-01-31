@@ -1,0 +1,823 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard - Smart College Bus Tracking{% endblock %}
+
+{% block extra_css %}
+<style>
+    .student-card {
+        border: none;
+        border-radius: 15px;
+        transition: transform 0.3s;
+        height: 100%;
+    }
+    
+    .student-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .bus-status-card {
+        background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+        color: white;
+        border-radius: 15px;
+    }
+    
+    .schedule-card {
+        background: linear-gradient(135deg, #4cc9f0 0%, #4361ee 100%);
+        color: white;
+        border-radius: 15px;
+    }
+    
+    .stop-card {
+        background: linear-gradient(135deg, #7209b7 0%, #3a0ca3 100%);
+        color: white;
+        border-radius: 15px;
+    }
+    
+    .notification-card {
+        background: linear-gradient(135deg, #f72585 0%, #b5179e 100%);
+        color: white;
+        border-radius: 15px;
+    }
+    
+    #studentMap {
+        height: 300px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .bus-icon {
+        background: #ff6b6b;
+        color: white;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: bold;
+        border: 3px solid white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    .stop-icon {
+        background: #4ecdc4;
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        border: 2px solid white;
+    }
+    
+    .estimated-time {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    
+    .action-button {
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        background: white;
+        border: 2px solid #e1e5eb;
+        transition: all 0.3s;
+    }
+    
+    .action-button:hover {
+        border-color: #4361ee;
+        transform: translateY(-2px);
+    }
+    
+    .action-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        margin: 0 auto 10px;
+    }
+    
+    .qr-code-container {
+        text-align: center;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 fw-bold mb-2">
+                        <i class="fas fa-graduation-cap me-2 text-primary"></i>Student Dashboard
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Welcome back, {{ user.get_full_name }}! Track your bus and stay updated.
+                    </p>
+                </div>
+                <div>
+                    <span class="badge bg-success fs-6">
+                        <i class="fas fa-user-graduate me-1"></i>Student
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bus Status & Map -->
+    <div class="row g-4 mb-4">
+        <!-- Bus Information -->
+        <div class="col-xl-4">
+            <div class="bus-status-card p-4">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <h5 class="mb-1">Your Assigned Bus</h5>
+                        <h2 class="fw-bold mb-0" id="busNumber">B-001</h2>
+                        <small class="opacity-75" id="busRoute">Route: College Main Route</small>
+                    </div>
+                    <div class="bus-icon" id="busIcon">B1</div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="opacity-75 d-block">Driver</small>
+                        <span class="fw-bold" id="busDriver">John Smith</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="opacity-75 d-block">Status</small>
+                        <span class="badge bg-success" id="busStatus">On Time</span>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-6">
+                        <small class="opacity-75 d-block">Current Speed</small>
+                        <span class="fw-bold" id="busSpeed">45 km/h</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="opacity-75 d-block">Last Updated</small>
+                        <span class="fw-bold" id="lastUpdated">2 min ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Today's Schedule -->
+        <div class="col-xl-4">
+            <div class="schedule-card p-4">
+                <h5 class="mb-3">
+                    <i class="fas fa-calendar-day me-2"></i>Today's Schedule
+                </h5>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="opacity-75 d-block">Departure</small>
+                        <span class="fw-bold" id="departureTime">08:30 AM</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="opacity-75 d-block">Arrival</small>
+                        <span class="fw-bold" id="arrivalTime">09:15 AM</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="opacity-75 d-block">Your Stop</small>
+                    <span class="fw-bold" id="boardingStop">College Main Gate</span>
+                </div>
+                
+                <div>
+                    <small class="opacity-75 d-block">Estimated Arrival</small>
+                    <h3 class="estimated-time text-warning" id="estimatedArrival">08:45 AM</h3>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Live Map -->
+        <div class="col-xl-4">
+            <div class="card student-card shadow-sm">
+                <div class="card-body p-0">
+                    <div id="studentMap"></div>
+                    <div class="p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">Current Location</small>
+                                <span class="fw-bold" id="currentLocation">Lat: 20.1234, Lng: 78.5678</span>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="refreshLocation()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card student-card shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2 text-primary"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6">
+                            <a href="{% url 'tracking:track_bus' %}" class="action-button text-decoration-none">
+                                <div class="action-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                                <small class="fw-bold d-block">Track Bus</small>
+                            </a>
+                        </div>
+                        
+                        <div class="col-md-3 col-6">
+                            <button class="action-button w-100" onclick="showQRCode()">
+                                <div class="action-icon bg-success bg-opacity-10 text-success">
+                                    <i class="fas fa-qrcode"></i>
+                                </div>
+                                <small class="fw-bold d-block">Show QR Code</small>
+                            </button>
+                        </div>
+                        
+                        <div class="col-md-3 col-6">
+                            <button class="action-button w-100" onclick="viewSchedule()">
+                                <div class="action-icon bg-info bg-opacity-10 text-info">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <small class="fw-bold d-block">Full Schedule</small>
+                            </button>
+                        </div>
+                        
+                        <div class="col-md-3 col-6">
+                            <button class="action-button w-100" onclick="reportIssue()">
+                                <div class="action-icon bg-warning bg-opacity-10 text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <small class="fw-bold d-block">Report Issue</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications & QR Code -->
+    <div class="row g-4">
+        <!-- Recent Notifications -->
+        <div class="col-xl-8">
+            <div class="card student-card shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-bell me-2 text-primary"></i>Recent Notifications
+                        </h5>
+                        <span class="badge bg-primary" id="notificationCount">0 New</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush" id="notificationsList">
+                        <!-- Notifications will be loaded here -->
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- QR Code & Info -->
+        <div class="col-xl-4">
+            <div class="card student-card shadow-sm">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-id-card me-2 text-primary"></i>Student ID
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="qr-code-container mb-4">
+                        <img src="{% static 'images/qr-code-placeholder.png' %}" 
+                             alt="QR Code" 
+                             class="img-fluid mb-3"
+                             id="studentQRCode"
+                             style="max-width: 200px;">
+                        <p class="text-muted mb-0 small">
+                            Show this QR code to the driver when boarding
+                        </p>
+                    </div>
+                    
+                    <div class="student-info">
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Roll Number</small>
+                                <span class="fw-bold" id="studentRoll">CS2023001</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Department</small>
+                                <span class="fw-bold" id="studentDept">Computer Science</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Year</small>
+                                <span class="fw-bold" id="studentYear">2nd Year</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Semester</small>
+                                <span class="fw-bold" id="studentSem">III</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrCodeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Your Boarding QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{% static 'images/qr-code-placeholder.png' %}" 
+                     alt="QR Code" 
+                     class="img-fluid mb-3"
+                     style="max-width: 300px;">
+                <p class="text-muted">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Show this QR code to the driver when boarding the bus
+                </p>
+                <button class="btn btn-outline-primary" onclick="downloadQRCode()">
+                    <i class="fas fa-download me-2"></i>Download QR Code
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Student Dashboard JavaScript
+    let studentMap;
+    let busMarker;
+    let stopMarker;
+    let studentData = {};
+    
+    // Initialize map
+    function initStudentMap() {
+        studentMap = L.map('studentMap').setView([20.5937, 78.9629], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(studentMap);
+        
+        // Load student data and update map
+        loadStudentData();
+        
+        // Refresh data every 30 seconds
+        setInterval(loadStudentData, 30000);
+    }
+    
+    // Load student data
+    function loadStudentData() {
+        fetch('/api/dashboard/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                studentData = data;
+                updateDashboard(data);
+                updateMap(data);
+            })
+            .catch(error => {
+                console.error('Error loading student data:', error);
+                showError('Unable to load data. Please try again.');
+            });
+    }
+    
+    // Update dashboard with data
+    function updateDashboard(data) {
+        // Bus information
+        if (data.bus) {
+            document.getElementById('busNumber').textContent = data.bus.bus_number;
+            document.getElementById('busRoute').textContent = `Route: ${data.schedule?.route_name || 'Not assigned'}`;
+            document.getElementById('busDriver').textContent = data.bus.driver_name || 'Not assigned';
+            document.getElementById('busIcon').textContent = data.bus.bus_number;
+            
+            // Status
+            const status = data.bus.status_display || 'Unknown';
+            const statusBadge = document.getElementById('busStatus');
+            statusBadge.textContent = status;
+            statusBadge.className = `badge bg-${getStatusColor(status)}`;
+            
+            // Speed and last updated
+            if (data.bus.current_speed) {
+                document.getElementById('busSpeed').textContent = `${data.bus.current_speed} km/h`;
+            }
+            
+            if (data.bus.last_updated) {
+                const timeAgo = getTimeAgo(new Date(data.bus.last_updated));
+                document.getElementById('lastUpdated').textContent = timeAgo;
+            }
+        }
+        
+        // Schedule information
+        if (data.schedule) {
+            document.getElementById('departureTime').textContent = 
+                formatTime(data.schedule.departure_time);
+            document.getElementById('arrivalTime').textContent = 
+                formatTime(data.schedule.arrival_time);
+        }
+        
+        // Student information
+        if (data.student) {
+            document.getElementById('boardingStop').textContent = 
+                data.boarding_stop?.name || 'Not assigned';
+            document.getElementById('studentRoll').textContent = data.student.roll_number;
+            document.getElementById('studentDept').textContent = data.student.department;
+            document.getElementById('studentYear').textContent = `Year ${data.student.year}`;
+            document.getElementById('studentSem').textContent = `Semester ${data.student.semester}`;
+        }
+        
+        // Estimated arrival
+        if (data.estimated_arrival) {
+            const arrivalTime = new Date(data.estimated_arrival);
+            document.getElementById('estimatedArrival').textContent = 
+                arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // Load notifications
+        loadNotifications();
+    }
+    
+    // Update map with bus and stop locations
+    function updateMap(data) {
+        if (!studentMap) return;
+        
+        // Clear existing markers
+        if (busMarker) studentMap.removeLayer(busMarker);
+        if (stopMarker) studentMap.removeLayer(stopMarker);
+        
+        // Add bus marker if location exists
+        if (data.bus_location) {
+            const busLatLng = [data.bus_location.latitude, data.bus_location.longitude];
+            
+            const busIcon = L.divIcon({
+                className: 'bus-marker-icon',
+                html: `<div class="bus-icon">${data.bus?.bus_number || 'B'}</div>`,
+                iconSize: [50, 50],
+                iconAnchor: [25, 25]
+            });
+            
+            busMarker = L.marker(busLatLng, { icon: busIcon })
+                .addTo(studentMap)
+                .bindPopup(`<strong>Bus ${data.bus?.bus_number}</strong><br>Speed: ${data.bus_location.speed} km/h`);
+            
+            // Update location display
+            document.getElementById('currentLocation').textContent = 
+                `Lat: ${data.bus_location.latitude.toFixed(4)}, Lng: ${data.bus_location.longitude.toFixed(4)}`;
+            
+            // Center map on bus
+            studentMap.setView(busLatLng, 15);
+        }
+        
+        // Add stop marker if exists
+        if (data.boarding_stop) {
+            const stopLatLng = [data.boarding_stop.latitude, data.boarding_stop.longitude];
+            
+            const stopIcon = L.divIcon({
+                className: 'stop-marker-icon',
+                html: `<div class="stop-icon"><i class="fas fa-map-marker-alt"></i></div>`,
+                iconSize: [40, 40],
+                iconAnchor: [20, 40]
+            });
+            
+            stopMarker = L.marker(stopLatLng, { icon: stopIcon })
+                .addTo(studentMap)
+                .bindPopup(`<strong>${data.boarding_stop.name}</strong><br>Your boarding stop`);
+        }
+        
+        // Draw route if we have multiple points
+        if (busMarker && stopMarker) {
+            const routeLine = L.polyline([
+                [data.bus_location.latitude, data.bus_location.longitude],
+                [data.boarding_stop.latitude, data.boarding_stop.longitude]
+            ], {
+                color: '#4361ee',
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '10, 10'
+            }).addTo(studentMap);
+        }
+    }
+    
+    // Load notifications
+    function loadNotifications() {
+        fetch('/api/notifications/recent/')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('notificationsList');
+                container.innerHTML = '';
+                
+                if (data.notifications && data.notifications.length > 0) {
+                    // Update count
+                    document.getElementById('notificationCount').textContent = 
+                        `${data.notifications.filter(n => !n.is_read).length} New`;
+                    
+                    // Add notifications
+                    data.notifications.forEach(notification => {
+                        const notificationItem = document.createElement('a');
+                        notificationItem.href = '#';
+                        notificationItem.className = `list-group-item list-group-item-action ${!notification.is_read ? 'list-group-item-info' : ''}`;
+                        notificationItem.innerHTML = `
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">
+                                    <i class="fas fa-${getNotificationIcon(notification.type)} me-2"></i>
+                                    ${notification.title}
+                                </h6>
+                                <small class="text-muted">${notification.time_ago}</small>
+                            </div>
+                            <p class="mb-1">${notification.message}</p>
+                            <small class="text-muted">${notification.type_display}</small>
+                        `;
+                        
+                        notificationItem.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            markNotificationRead(notification.id);
+                        });
+                        
+                        container.appendChild(notificationItem);
+                    });
+                } else {
+                    container.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-bell-slash fa-2x text-muted mb-3"></i>
+                            <p class="text-muted">No notifications</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+            });
+    }
+    
+    // Helper functions
+    function getStatusColor(status) {
+        const statusMap = {
+            'active': 'success',
+            'on time': 'success',
+            'delayed': 'warning',
+            'maintenance': 'danger',
+            'inactive': 'secondary'
+        };
+        return statusMap[status.toLowerCase()] || 'secondary';
+    }
+    
+    function getTimeAgo(date) {
+        const now = new Date();
+        const diff = now - date;
+        const minutes = Math.floor(diff / 60000);
+        
+        if (minutes < 1) return 'Just now';
+        if (minutes === 1) return '1 min ago';
+        if (minutes < 60) return `${minutes} mins ago`;
+        
+        const hours = Math.floor(minutes / 60);
+        if (hours === 1) return '1 hour ago';
+        if (hours < 24) return `${hours} hours ago`;
+        
+        const days = Math.floor(hours / 24);
+        return `${days} days ago`;
+    }
+    
+    function formatTime(timeString) {
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+    }
+    
+    function getNotificationIcon(type) {
+        const icons = {
+            'bus_arrival': 'bus',
+            'bus_delay': 'clock',
+            'emergency': 'exclamation-triangle',
+            'route_change': 'route',
+            'announcement': 'bullhorn'
+        };
+        return icons[type] || 'bell';
+    }
+    
+    function markNotificationRead(notificationId) {
+        fetch(`/api/notifications/mark-read/${notificationId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadNotifications();
+            }
+        })
+        .catch(error => {
+            console.error('Error marking notification as read:', error);
+        });
+    }
+    
+    // Action functions
+    function refreshLocation() {
+        loadStudentData();
+        showToast('Location refreshed!', 'success');
+    }
+    
+    function showQRCode() {
+        const modal = new bootstrap.Modal(document.getElementById('qrCodeModal'));
+        modal.show();
+    }
+    
+    function downloadQRCode() {
+        // Implement QR code download functionality
+        showToast('QR code downloaded!', 'success');
+    }
+    
+    function viewSchedule() {
+        window.location.href = '/student/schedule/';
+    }
+    
+    function reportIssue() {
+        const issue = prompt('Please describe the issue:');
+        if (issue) {
+            fetch('/api/issues/report/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    issue: issue,
+                    user_type: 'student'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Issue reported successfully!', 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error reporting issue:', error);
+                showToast('Failed to report issue.', 'error');
+            });
+        }
+    }
+    
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+        errorDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container-fluid');
+        container.insertBefore(errorDiv, container.firstChild);
+    }
+    
+    function showToast(message, type = 'success') {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+        toast.setAttribute('role', 'alert');
+        
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        // Add to container
+        const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+        toastContainer.appendChild(toast);
+        
+        // Initialize and show
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        
+        // Remove after hide
+        toast.addEventListener('hidden.bs.toast', function() {
+            toast.remove();
+        });
+    }
+    
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        container.style.zIndex = '1050';
+        document.body.appendChild(container);
+        return container;
+    }
+    
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initStudentMap();
+        
+        // Load data immediately
+        loadStudentData();
+        
+        // Set up WebSocket for real-time updates
+        setupWebSocket();
+    });
+    
+    // WebSocket for real-time updates
+    function setupWebSocket() {
+        const studentId = {{ user.student_profile.id|default:'0' }};
+        if (studentId) {
+            const socket = new WebSocket(
+                `ws://${window.location.host}/ws/tracking/student/${studentId}/`
+            );
+            
+            socket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                if (data.type === 'location_update') {
+                    // Update bus location on map
+                    updateBusLocation(data.data);
+                } else if (data.type === 'notification') {
+                    // Show new notification
+                    showToast(data.data.message, 'info');
+                    loadNotifications();
+                }
+            };
+            
+            socket.onclose = function() {
+                console.log('WebSocket disconnected. Reconnecting...');
+                setTimeout(setupWebSocket, 5000);
+            };
+        }
+    }
+    
+    function updateBusLocation(locationData) {
+        if (busMarker && studentMap) {
+            const newLatLng = [locationData.latitude, locationData.longitude];
+            busMarker.setLatLng(newLatLng);
+            
+            // Update speed display
+            if (locationData.speed) {
+                document.getElementById('busSpeed').textContent = `${locationData.speed} km/h`;
+            }
+            
+            // Update last updated
+            document.getElementById('lastUpdated').textContent = 'Just now';
+            
+            // Re-center map if needed
+            if (studentMap.getZoom() < 14) {
+                studentMap.setView(newLatLng);
+            }
+        }
+    }
+</script>
+{% endblock %}

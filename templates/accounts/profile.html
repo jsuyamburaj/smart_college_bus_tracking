@@ -1,0 +1,630 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Profile - Smart College Bus Tracking{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-3 col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="position-relative d-inline-block">
+                            {% if user.profile.photo %}
+                                <img src="{{ user.profile.photo.url }}" alt="Profile Photo" 
+                                     class="rounded-circle shadow" style="width: 150px; height: 150px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center mx-auto" 
+                                     style="width: 150px; height: 150px;">
+                                    <span class="display-4 text-white">{{ user.get_initials }}</span>
+                                </div>
+                            {% endif %}
+                            <button class="btn btn-sm btn-light rounded-circle position-absolute bottom-0 end-0 border"
+                                    data-bs-toggle="modal" data-bs-target="#uploadPhotoModal"
+                                    style="width: 40px; height: 40px;">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                        <h4 class="mt-3 mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                        <p class="text-muted">
+                            {% if user.is_student %}
+                                <span class="badge bg-primary">Student</span>
+                            {% elif user.is_driver %}
+                                <span class="badge bg-warning text-dark">Driver</span>
+                            {% elif user.is_staff %}
+                                <span class="badge bg-success">Staff</span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <ul class="nav flex-column nav-pills">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#personal-info" data-bs-toggle="pill">
+                                <i class="fas fa-user me-2"></i> Personal Info
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#bus-info" data-bs-toggle="pill">
+                                <i class="fas fa-bus me-2"></i> Bus Information
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#security" data-bs-toggle="pill">
+                                <i class="fas fa-shield-alt me-2"></i> Security
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#notifications" data-bs-toggle="pill">
+                                <i class="fas fa-bell me-2"></i> Notifications
+                            </a>
+                        </li>
+                        {% if user.is_driver %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="#driver-stats" data-bs-toggle="pill">
+                                <i class="fas fa-chart-line me-2"></i> Driver Stats
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9 col-md-8">
+            <div class="tab-content">
+                <!-- Personal Information Tab -->
+                <div class="tab-pane fade show active" id="personal-info">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0"><i class="fas fa-user me-2"></i> Personal Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{% url 'accounts:update_profile' %}" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">First Name</label>
+                                        <input type="text" name="first_name" class="form-control" 
+                                               value="{{ user.first_name }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Last Name</label>
+                                        <input type="text" name="last_name" class="form-control" 
+                                               value="{{ user.last_name }}" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Email Address</label>
+                                        <input type="email" class="form-control" value="{{ user.email }}" disabled>
+                                        <small class="text-muted">Contact admin to change email</small>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Phone Number</label>
+                                        <input type="tel" name="phone" class="form-control" 
+                                               value="{{ user.profile.phone|default:'' }}" 
+                                               pattern="[0-9]{10}" placeholder="10-digit number">
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Student/Staff ID</label>
+                                        <input type="text" class="form-control" 
+                                               value="{{ user.profile.student_id|default:'Not set' }}" disabled>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Department</label>
+                                        <input type="text" name="department" class="form-control" 
+                                               value="{{ user.profile.department|default:'' }}" 
+                                               placeholder="e.g., Computer Science">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Address</label>
+                                    <textarea name="address" class="form-control" rows="3">{{ user.profile.address|default:'' }}</textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Emergency Contact</label>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <input type="text" name="emergency_name" class="form-control" 
+                                                   value="{{ user.profile.emergency_contact_name|default:'' }}" 
+                                                   placeholder="Contact Person Name">
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <input type="tel" name="emergency_phone" class="form-control" 
+                                                   value="{{ user.profile.emergency_contact_phone|default:'' }}" 
+                                                   placeholder="Emergency Phone Number">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-4">
+                                    <button type="button" class="btn btn-outline-secondary">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bus Information Tab -->
+                <div class="tab-pane fade" id="bus-info">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0"><i class="fas fa-bus me-2"></i> Bus Information</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if user.is_student %}
+                                <div class="row">
+                                    {% if user.profile.assigned_bus %}
+                                    <div class="col-md-6">
+                                        <div class="card border-primary mb-3">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0">Assigned Bus</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <h5 class="card-title">{{ user.profile.assigned_bus.bus_number }}</h5>
+                                                <p class="card-text">
+                                                    <strong>Route:</strong> {{ user.profile.assigned_bus.route.name }}<br>
+                                                    <strong>Driver:</strong> {{ user.profile.assigned_bus.driver.get_full_name }}<br>
+                                                    <strong>Capacity:</strong> {{ user.profile.assigned_bus.capacity }} seats<br>
+                                                    <strong>Status:</strong> 
+                                                    <span class="badge bg-{{ user.profile.assigned_bus.status|lower }} text-white">
+                                                        {{ user.profile.assigned_bus.get_status_display }}
+                                                    </span>
+                                                </p>
+                                                <a href="{% url 'buses:bus_detail' user.profile.assigned_bus.id %}" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    View Details
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="col-12">
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            No bus assigned yet. Please contact the transport office.
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <div class="col-md-6">
+                                        <div class="card border-info">
+                                            <div class="card-header bg-info text-white">
+                                                <h6 class="mb-0">Pickup & Drop Points</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                {% if user.profile.pickup_point %}
+                                                <p>
+                                                    <strong>Pickup Point:</strong><br>
+                                                    {{ user.profile.pickup_point.name }}<br>
+                                                    <small class="text-muted">
+                                                        {{ user.profile.pickup_point.address }}
+                                                    </small>
+                                                </p>
+                                                <p>
+                                                    <strong>Pickup Time:</strong><br>
+                                                    {{ user.profile.pickup_time|default:"Not set" }}
+                                                </p>
+                                                {% else %}
+                                                <p class="text-muted">No pickup point assigned</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4">
+                                    <h6>Bus Schedule</h6>
+                                    {% if schedules %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Day</th>
+                                                    <th>Pickup Time</th>
+                                                    <th>Drop Time</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for schedule in schedules %}
+                                                <tr>
+                                                    <td>{{ schedule.get_day_display }}</td>
+                                                    <td>{{ schedule.pickup_time|time:"H:i" }}</td>
+                                                    <td>{{ schedule.drop_time|time:"H:i" }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ schedule.is_active|yesno:'success,secondary' }}">
+                                                            {{ schedule.is_active|yesno:'Active,Inactive' }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted">No schedule available</p>
+                                    {% endif %}
+                                </div>
+                            {% elif user.is_driver %}
+                                <!-- Driver-specific bus info -->
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Driver bus management is available in the Driver Dashboard.
+                                </div>
+                                <a href="{% url 'driver:dashboard' %}" class="btn btn-primary">
+                                    Go to Driver Dashboard
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Tab -->
+                <div class="tab-pane fade" id="security">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i> Security Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h6>Change Password</h6>
+                                <form method="POST" action="{% url 'accounts:change_password' %}">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label class="form-label">Current Password</label>
+                                        <input type="password" name="old_password" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">New Password</label>
+                                        <input type="password" name="new_password1" class="form-control" required>
+                                        <div class="form-text">
+                                            <small>Password must contain at least 8 characters including uppercase, lowercase, and numbers.</small>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Confirm New Password</label>
+                                        <input type="password" name="new_password2" class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Update Password</button>
+                                </form>
+                            </div>
+
+                            <div class="border-top pt-4">
+                                <h6>Two-Factor Authentication</h6>
+                                <p class="text-muted">Add an extra layer of security to your account.</p>
+                                {% if user.profile.two_factor_enabled %}
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    Two-factor authentication is enabled
+                                </div>
+                                <button class="btn btn-outline-danger btn-sm">Disable 2FA</button>
+                                {% else %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Two-factor authentication is not enabled
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm">Enable 2FA</button>
+                                {% endif %}
+                            </div>
+
+                            <div class="border-top pt-4">
+                                <h6 class="text-danger">Danger Zone</h6>
+                                <p class="text-muted">Permanently delete your account and all associated data.</p>
+                                <button class="btn btn-outline-danger" data-bs-toggle="modal" 
+                                        data-bs-target="#deleteAccountModal">
+                                    Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Tab -->
+                <div class="tab-pane fade" id="notifications">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0"><i class="fas fa-bell me-2"></i> Notification Preferences</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{% url 'accounts:update_notifications' %}">
+                                {% csrf_token %}
+                                <div class="mb-4">
+                                    <h6>Notification Channels</h6>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="email_notifications" 
+                                               id="emailNotifications" {% if user.profile.email_notifications %}checked{% endif %}>
+                                        <label class="form-check-label" for="emailNotifications">
+                                            Email Notifications
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="sms_notifications" 
+                                               id="smsNotifications" {% if user.profile.sms_notifications %}checked{% endif %}>
+                                        <label class="form-check-label" for="smsNotifications">
+                                            SMS Notifications
+                                        </label>
+                                        <small class="text-muted d-block">(Standard carrier rates may apply)</small>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="push_notifications" 
+                                               id="pushNotifications" {% if user.profile.push_notifications %}checked{% endif %}>
+                                        <label class="form-check-label" for="pushNotifications">
+                                            Push Notifications
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <h6>Notification Types</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="bus_delay" 
+                                                       id="busDelay" {% if user.profile.notify_bus_delay %}checked{% endif %}>
+                                                <label class="form-check-label" for="busDelay">
+                                                    Bus Delays
+                                                </label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="bus_arrival" 
+                                                       id="busArrival" {% if user.profile.notify_bus_arrival %}checked{% endif %}>
+                                                <label class="form-check-label" for="busArrival">
+                                                    Bus Arrival (10 mins before)
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="route_change" 
+                                                       id="routeChange" {% if user.profile.notify_route_change %}checked{% endif %}>
+                                                <label class="form-check-label" for="routeChange">
+                                                    Route Changes
+                                                </label>
+                                            </div>
+                                            <div class="form-check mb-2">
+                                                <input class="form-check-input" type="checkbox" name="emergency" 
+                                                       id="emergency" {% if user.profile.notify_emergency %}checked{% endif %}>
+                                                <label class="form-check-label" for="emergency">
+                                                    Emergency Alerts
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h6>Notification Frequency</h6>
+                                    <select class="form-select" name="notification_frequency">
+                                        <option value="realtime" {% if user.profile.notification_frequency == 'realtime' %}selected{% endif %}>
+                                            Real-time (All notifications)
+                                        </option>
+                                        <option value="digest" {% if user.profile.notification_frequency == 'digest' %}selected{% endif %}>
+                                            Daily Digest
+                                        </option>
+                                        <option value="important" {% if user.profile.notification_frequency == 'important' %}selected{% endif %}>
+                                            Important Only
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Save Preferences</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Driver Stats Tab -->
+                {% if user.is_driver %}
+                <div class="tab-pane fade" id="driver-stats">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Driver Statistics</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <div class="card bg-primary text-white">
+                                        <div class="card-body text-center">
+                                            <h2 class="mb-0">{{ total_trips }}</h2>
+                                            <small>Total Trips</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card bg-success text-white">
+                                        <div class="card-body text-center">
+                                            <h2 class="mb-0">{{ on_time_percentage }}%</h2>
+                                            <small>On-Time Rate</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card bg-info text-white">
+                                        <div class="card-body text-center">
+                                            <h2 class="mb-0">{{ total_distance }}</h2>
+                                            <small>Total Km</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card bg-warning text-white">
+                                        <div class="card-body text-center">
+                                            <h2 class="mb-0">{{ rating|default:"4.5" }}/5</h2>
+                                            <small>Average Rating</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <h6>Recent Trips</h6>
+                                {% if recent_trips %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Route</th>
+                                                <th>Start Time</th>
+                                                <th>End Time</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for trip in recent_trips %}
+                                            <tr>
+                                                <td>{{ trip.date|date:"M d, Y" }}</td>
+                                                <td>{{ trip.route.name }}</td>
+                                                <td>{{ trip.start_time|time:"H:i" }}</td>
+                                                <td>{{ trip.end_time|time:"H:i"|default:"-" }}</td>
+                                                <td>
+                                                    <span class="badge bg-{{ trip.status|lower }}">
+                                                        {{ trip.get_status_display }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p class="text-muted">No trips recorded</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Upload Modal -->
+<div class="modal fade" id="uploadPhotoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'accounts:upload_photo' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Profile Photo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Choose new photo</label>
+                        <input type="file" name="photo" class="form-control" accept="image/*" required>
+                        <div class="form-text">
+                            Recommended: Square image, max 5MB, JPG/PNG format
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div id="imagePreview" class="mb-3"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload Photo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Delete Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All your data will be permanently deleted.
+                </div>
+                <p>Before deleting your account, please note:</p>
+                <ul>
+                    <li>All your personal information will be removed</li>
+                    <li>Your bus assignments and history will be deleted</li>
+                    <li>You will lose access to the bus tracking system</li>
+                </ul>
+                <div class="mb-3">
+                    <label class="form-label">Please type "DELETE" to confirm</label>
+                    <input type="text" class="form-control" id="deleteConfirm" placeholder="Type DELETE here">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete" disabled>Delete My Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Image preview for photo upload
+    $('input[name="photo"]').change(function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#imagePreview').html(
+                    `<img src="${e.target.result}" class="img-thumbnail" style="max-height: 200px;">`
+                );
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Delete account confirmation
+    $('#deleteConfirm').on('input', function() {
+        const confirmBtn = $('#confirmDelete');
+        if ($(this).val().toUpperCase() === 'DELETE') {
+            confirmBtn.prop('disabled', false);
+        } else {
+            confirmBtn.prop('disabled', true);
+        }
+    });
+
+    $('#confirmDelete').click(function() {
+        if (!$(this).prop('disabled')) {
+            // Add your delete account logic here
+            window.location.href = "{% url 'accounts:delete_account' %}";
+        }
+    });
+
+    // Tab persistence
+    $('a[data-bs-toggle="pill"]').on('shown.bs.tab', function(e) {
+        localStorage.setItem('activeProfileTab', $(e.target).attr('href'));
+    });
+
+    const activeTab = localStorage.getItem('activeProfileTab');
+    if (activeTab) {
+        $(`a[href="${activeTab}"]`).tab('show');
+    }
+
+    // Form validation
+    $('form').on('submit', function() {
+        $(this).find('button[type="submit"]').prop('disabled', true)
+               .html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+    });
+});
+</script>
+{% endblock %}

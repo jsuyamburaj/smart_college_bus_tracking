@@ -1,0 +1,470 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Driver Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .driver-card {
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    .driver-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    #driverMap {
+        height: 500px;
+        border-radius: 10px;
+        z-index: 1;
+    }
+    .speedometer {
+        width: 150px;
+        height: 150px;
+        position: relative;
+        margin: 0 auto;
+    }
+    .speed-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+    .btn-location {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-tachometer-alt"></i> Driver Dashboard</h2>
+        <p class="text-muted">Welcome, {{ driver.user.get_full_name }}</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">
+    {{ error }}
+</div>
+{% endif %}
+
+{% if bus %}
+<div class="row">
+    <!-- Bus Status Card -->
+    <div class="col-md-4 mb-4">
+        <div class="card driver-card bg-primary text-white">
+            <div class="card-body">
+                <h4><i class="fas fa-bus"></i> Bus Status</h4>
+                <div class="mt-4">
+                    <p><strong>Bus Number:</strong> {{ bus.bus_number }}</p>
+                    <p><strong>Registration:</strong> {{ bus.registration_number }}</p>
+                    <p><strong>Type:</strong> {{ bus.get_bus_type_display }}</p>
+                    <p><strong>Capacity:</strong> {{ bus.capacity }} seats</p>
+                    <p>
+                        <strong>Status:</strong> 
+                        <span class="badge bg-{% if bus.status == 'active' %}success{% else %}warning{% endif %}">
+                            {{ bus.get_status_display }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trip Information -->
+    <div class="col-md-4 mb-4">
+        <div class="card driver-card bg-info text-white">
+            <div class="card-body">
+                <h4><i class="fas fa-route"></i> Current Trip</h4>
+                <div class="mt-4">
+                    {% if schedule %}
+                    <p><strong>Route:</strong> {{ schedule.route.name }}</p>
+                    <p><strong>Departure:</strong> {{ schedule.departure_time }}</p>
+                    <p><strong>Arrival:</strong> {{ schedule.arrival_time }}</p>
+                    <p><strong>Next Stop:</strong> 
+                        {% if stops %}
+                            {{ stops.0.name }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                    <p><strong>Passengers:</strong> {{ bus.students.count }}</p>
+                    {% else %}
+                    <p class="mt-3">No active schedule for today.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Speed & Location -->
+    <div class="col-md-4 mb-4">
+        <div class="card driver-card bg-success text-white">
+            <div class="card-body text-center">
+                <h4><i class="fas fa-tachometer-alt"></i> Current Speed</h4>
+                <div class="speedometer mt-3">
+                    <div class="speed-value" id="currentSpeed">
+                        {{ bus.current_speed|floatformat:0 }}
+                    </div>
+                    <small>km/h</small>
+                </div>
+                
+                {% if current_location %}
+                <div class="mt-4">
+                    <p><i class="fas fa-map-marker-alt"></i> Current Location</p>
+                    <small>
+                        Lat: {{ current_location.latitude|floatformat:6 }}<br>
+                        Lng: {{ current_location.longitude|floatformat:6 }}
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card driver-card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-map"></i> Navigation Map</h4>
+            </div>
+            <div class="card-body position-relative">
+                <div id="driverMap"></div>
+                <button class="btn btn-danger btn-location" onclick="getCurrentLocation()">
+                    <i class="fas fa-crosshairs"></i> Update Location
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stops List -->
+{% if stops %}
+<div class="row">
+    <div class="col-12">
+        <div class="card driver-card">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0"><i class="fas fa-map-marker-alt"></i> Route Stops</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Stop Name</th>
+                                <th>Estimated Time</th>
+                                <th>Type</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stop in stops %}
+                            <tr>
+                                <td>{{ stop.sequence }}</td>
+                                <td>{{ stop.name }}</td>
+                                <td>{{ stop.estimated_arrival_time }}</td>
+                                <td>
+                                    {% if stop.is_pickup_point and stop.is_drop_point %}
+                                        <span class="badge bg-info">Pickup/Drop</span>
+                                    {% elif stop.is_pickup_point %}
+                                        <span class="badge bg-success">Pickup</span>
+                                    {% elif stop.is_drop_point %}
+                                        <span class="badge bg-warning">Drop</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="navigateToStop({{ stop.latitude }}, {{ stop.longitude }})">
+                                        <i class="fas fa-directions"></i> Navigate
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Control Panel -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card driver-card">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0"><i class="fas fa-cogs"></i> Control Panel</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-success w-100" onclick="startTrip()">
+                            <i class="fas fa-play"></i> Start Trip
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-danger w-100" onclick="endTrip()">
+                            <i class="fas fa-stop"></i> End Trip
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-warning w-100" onclick="reportIssue()">
+                            <i class="fas fa-exclamation-triangle"></i> Report Issue
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-info w-100" onclick="openPassengerList()">
+                            <i class="fas fa-users"></i> Passengers
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <h4><i class="fas fa-exclamation-triangle"></i> No Bus Assigned</h4>
+    <p>You haven't been assigned to any bus yet. Please contact the administrator.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/driver_gps.js' %}"></script>
+<script>
+    // Global variables
+    let map;
+    let busMarker;
+    let routeLayer;
+    let currentLat = {% if current_location %}{{ current_location.latitude }}{% else %}0{% endif %};
+    let currentLng = {% if current_location %}{{ current_location.longitude }}{% else %}0{% endif %};
+    let busId = {% if bus %}{{ bus.id }}{% else %}0{% endif %};
+    
+    // Initialize map
+    function initMap() {
+        if (currentLat !== 0 && currentLng !== 0) {
+            map = L.map('driverMap').setView([currentLat, currentLng], 15);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add bus marker
+            const busIcon = L.icon({
+                iconUrl: '{% static "images/bus-driver.png" %}',
+                iconSize: [50, 50],
+                iconAnchor: [25, 50]
+            });
+            
+            busMarker = L.marker([currentLat, currentLng], {
+                icon: busIcon,
+                draggable: false
+            }).addTo(map);
+            
+            busMarker.bindPopup(`
+                <strong>{{ bus.bus_number }}</strong><br>
+                Driver: {{ driver.user.get_full_name }}<br>
+                Status: {{ bus.get_status_display }}
+            `).openPopup();
+            
+            // Add route stops if available
+            {% if stops %}
+            const stopIcon = L.icon({
+                iconUrl: '{% static "images/stop-marker.png" %}',
+                iconSize: [35, 35],
+                iconAnchor: [17, 35]
+            });
+            
+            {% for stop in stops %}
+            L.marker([{{ stop.latitude }}, {{ stop.longitude }}], {
+                icon: stopIcon
+            }).addTo(map).bindPopup(`
+                <strong>Stop #{{ stop.sequence }}</strong><br>
+                {{ stop.name }}<br>
+                Time: {{ stop.estimated_arrival_time }}
+            `);
+            {% endfor %}
+            
+            // Draw route line (simplified)
+            {% if stops|length > 1 %}
+            const routeCoords = [
+                {% for stop in stops %}
+                [{{ stop.latitude }}, {{ stop.longitude }}]{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+            
+            routeLayer = L.polyline(routeCoords, {
+                color: 'blue',
+                weight: 3,
+                opacity: 0.7
+            }).addTo(map);
+            {% endif %}
+            {% endif %}
+        }
+    }
+    
+    // Get current location from browser
+    function getCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const speed = position.coords.speed || 0;
+                    
+                    // Update map
+                    if (map) {
+                        map.setView([lat, lng], 15);
+                        busMarker.setLatLng([lat, lng]);
+                    }
+                    
+                    // Update speed display
+                    document.getElementById('currentSpeed').textContent = Math.round(speed * 3.6); // m/s to km/h
+                    
+                    // Send to server
+                    updateLocation(lat, lng, speed * 3.6);
+                },
+                function(error) {
+                    alert('Error getting location: ' + error.message);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    }
+    
+    // Update location on server
+    function updateLocation(lat, lng, speed) {
+        fetch(`/tracking/update-location/${busId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                latitude: lat,
+                longitude: lng,
+                speed: speed
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Location updated:', data);
+            } else {
+                console.error('Error:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    
+    // Navigate to stop
+    function navigateToStop(lat, lng) {
+        if (map) {
+            map.setView([lat, lng], 15);
+            L.popup()
+                .setLatLng([lat, lng])
+                .setContent('Navigation to this stop')
+                .openOn(map);
+        }
+    }
+    
+    // Control functions
+    function startTrip() {
+        if (confirm('Start the trip?')) {
+            fetch(`/api/trips/start/${busId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Trip started!');
+            });
+        }
+    }
+    
+    function endTrip() {
+        if (confirm('End the trip?')) {
+            fetch(`/api/trips/end/${busId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Trip ended!');
+            });
+        }
+    }
+    
+    function reportIssue() {
+        const issue = prompt('Describe the issue:');
+        if (issue) {
+            fetch(`/api/issues/report/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    bus_id: busId,
+                    issue: issue
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Issue reported!');
+            });
+        }
+    }
+    
+    function openPassengerList() {
+        window.open(`/driver/passengers/${busId}/`, '_blank');
+    }
+    
+    // Utility function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Initialize map when page loads
+    document.addEventListener('DOMContentLoaded', initMap);
+    
+    // Auto-update location every 10 seconds
+    setInterval(getCurrentLocation, 10000);
+</script>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}About Us - Smart College Bus Tracking{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-primary mb-3">About Smart Bus Tracking</h1>
+                <p class="lead text-muted">
+                    Revolutionizing college transportation with real-time tracking and smart notifications
+                </p>
+            </div>
+
+            <!-- Mission Section -->
+            <div class="card shadow-sm border-0 mb-5">
+                <div class="card-body p-5">
+                    <div class="row align-items-center">
+                        <div class="col-md-4 text-center mb-4 mb-md-0">
+                            <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 150px; height: 150px;">
+                                <i class="fas fa-bullseye text-white" style="font-size: 4rem;"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <h2 class="fw-bold mb-3">Our Mission</h2>
+                            <p class="text-muted mb-4">
+                                To provide a reliable, efficient, and user-friendly bus tracking system that 
+                                enhances the college transportation experience for students, parents, drivers, 
+                                and administrators alike.
+                            </p>
+                            <p class="text-muted">
+                                We believe that technology should simplify lives. Our system ensures that 
+                                students never miss their buses, parents stay informed, and administrators 
+                                can manage transportation efficiently.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Section -->
+            <div class="mb-5">
+                <h2 class="fw-bold text-center mb-4">Meet Our Team</h2>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <img src="{% static 'images/team1.jpg' %}" 
+                                         class="rounded-circle" 
+                                         alt="Team Member" 
+                                         style="width: 120px; height: 120px; object-fit: cover;">
+                                </div>
+                                <h5 class="fw-bold mb-1">Dr. Sarah Johnson</h5>
+                                <p class="text-primary mb-3">Project Lead</p>
+                                <p class="text-muted small">
+                                    PhD in Computer Science with 10+ years experience in transportation systems
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <img src="{% static 'images/team2.jpg' %}" 
+                                         class="rounded-circle" 
+                                         alt="Team Member" 
+                                         style="width: 120px; height: 120px; object-fit: cover;">
+                                </div>
+                                <h5 class="fw-bold mb-1">Mike Chen</h5>
+                                <p class="text-primary mb-3">Lead Developer</p>
+                                <p class="text-muted small">
+                                    Full-stack developer specializing in real-time applications and GPS tracking
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <img src="{% static 'images/team3.jpg' %}" 
+                                         class="rounded-circle" 
+                                         alt="Team Member" 
+                                         style="width: 120px; height: 120px; object-fit: cover;">
+                                </div>
+                                <h5 class="fw-bold mb-1">Priya Sharma</h5>
+                                <p class="text-primary mb-3">UI/UX Designer</p>
+                                <p class="text-muted small">
+                                    Creating intuitive interfaces that make complex tracking simple for everyone
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Highlight -->
+            <div class="card shadow-sm border-0 mb-5">
+                <div class="card-body p-5">
+                    <h2 class="fw-bold text-center mb-4">Key Features</h2>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-map-marked-alt text-primary fa-2x me-3"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold">Real-Time GPS Tracking</h5>
+                                    <p class="text-muted mb-0">
+                                        Accurate location tracking with live updates on interactive maps
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-bell text-success fa-2x me-3"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold">Smart Notifications</h5>
+                                    <p class="text-muted mb-0">
+                                        Instant alerts for arrivals, delays, and important announcements
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-shield-alt text-info fa-2x me-3"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold">Safety Features</h5>
+                                    <p class="text-muted mb-0">
+                                        Emergency alerts, speed monitoring, and route compliance checks
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-chart-line text-warning fa-2x me-3"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold">Analytics Dashboard</h5>
+                                    <p class="text-muted mb-0">
+                                        Comprehensive reports and insights for administrators
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact CTA -->
+            <div class="text-center">
+                <h3 class="fw-bold mb-3">Have Questions?</h3>
+                <p class="text-muted mb-4">
+                    We're here to help! Contact our team for more information or support.
+                </p>
+                <a href="{% url 'contact' %}" class="btn btn-primary btn-lg px-5">
+                    <i class="fas fa-envelope me-2"></i>Contact Us
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
