@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Route Management - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1"><i class="fas fa-route me-2"></i> Route Management</h2>
+                    <p class="text-muted mb-0">Manage all bus routes in the system</p>
+                </div>
+                <div>
+                    <a href="{% url 'routes:create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i> Add New Route
+                    </a>
+                    {% if request.GET.assign_bus %}
+                    <a href="{% url 'buses:detail' request.GET.assign_bus %}" class="btn btn-outline-warning">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Bus
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-primary border-4 shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                                Total Routes
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ total_routes }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-route fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-success border-4 shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                                Active Routes
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ active_routes }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-info border-4 shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                                Total Stops
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ total_stops }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-map-marker-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-warning border-4 shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                                Avg. Distance
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ avg_distance }} km</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-road fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Status Filter</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Type Filter</label>
+                    <select class="form-select" id="typeFilter">
+                        <option value="">All Types</option>
+                        <option value="college">College Routes</option>
+                        <option value="city">City Routes</option>
+                        <option value="intercity">Intercity Routes</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Search Routes</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search routes...">
+                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Sort By</label>
+                    <select class="form-select" id="sortFilter">
+                        <option value="name">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                        <option value="distance">Distance (Low-High)</option>
+                        <option value="distance_desc">Distance (High-Low)</option>
+                        <option value="stops">Stops (Low-High)</option>
+                        <option value="stops_desc">Stops (High-Low)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Routes Grid View -->
+    <div class="row" id="routesGrid">
+        {% for route in routes %}
+        <div class="col-xl-4 col-lg-6 mb-4 route-card" 
+             data-status="{{ route.status }}" 
+             data-type="{{ route.route_type }}"
+             data-name="{{ route.name|lower }}"
+             data-distance="{{ route.distance }}"
+             data-stops="{{ route.total_stops }}">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ route.name }}</h5>
+                        <span class="badge bg-{{ route.status_color }}">{{ route.get_status_display }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Description</small>
+                        <p class="mb-2">{{ route.description|truncatechars:100|default:"No description" }}</p>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Type</small>
+                            <p class="fw-bold mb-0">{{ route.get_route_type_display }}</p>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Distance</small>
+                            <p class="fw-bold mb-0">{{ route.distance|default:"-" }} km</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Total Stops</small>
+                            <p class="fw-bold mb-0">{{ route.total_stops }}</p>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Travel Time</small>
+                            <p class="fw-bold mb-0">{{ route.estimated_time|default:"-" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Assigned Buses</small>
+                        <div class="mt-1">
+                            {% for bus in route.assigned_buses.all|slice:":3" %}
+                            <span class="badge bg-primary me-1">{{ bus.bus_number }}</span>
+                            {% empty %}
+                            <span class="badge bg-secondary">No buses</span>
+                            {% endfor %}
+                            {% if route.assigned_buses.count > 3 %}
+                            <span class="badge bg-info">+{{ route.assigned_buses.count|add:"-3" }} more</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Schedule</small>
+                        <div class="mt-1">
+                            {% if route.has_schedule %}
+                            <span class="badge bg-success">Scheduled</span>
+                            {% else %}
+                            <span class="badge bg-warning">No schedule</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between">
+                        <div class="btn-group">
+                            <a href="{% url 'routes:detail' route.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'routes:update' route.id %}" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if request.GET.assign_bus %}
+                            <button class="btn btn-sm btn-outline-success assign-route" 
+                                    data-route-id="{{ route.id }}" 
+                                    data-bus-id="{{ request.GET.assign_bus }}">
+                                <i class="fas fa-link"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">
+                            Updated: {{ route.updated_at|date:"M d" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-route fa-4x text-muted mb-3"></i>
+                    <h4>No Routes Found</h4>
+                    <p class="text-muted mb-4">No routes have been created yet.</p>
+                    <a href="{% url 'routes:create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i> Create First Route
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if routes.has_other_pages %}
+    <div class="row mt-4">
+        <div class="col">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if routes.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ routes.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for i in routes.paginator.page_range %}
+                    {% if routes.number == i %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ i }}</span>
+                    </li>
+                    {% elif i > routes.number|add:"-3" and i < routes.number|add:"3" %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if routes.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ routes.next_page_number }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Assign Route Modal -->
+<div class="modal fade" id="assignRouteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-link me-2"></i> Assign Route to Bus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Assign route <strong id="routeName"></strong> to bus <strong id="busNumber"></strong>?</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This bus will follow this route for all scheduled trips.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Effective Date</label>
+                    <input type="date" class="form-control" id="effectiveDate" value="{{ today|date:'Y-m-d' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" id="assignmentNotes" rows="2" placeholder="Any special instructions..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAssign">Assign Route</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.route-card {
+    transition: transform 0.2s;
+}
+
+.route-card:hover {
+    transform: translateY(-5px);
+}
+
+.card {
+    border: 1px solid #dee2e6;
+}
+
+.card-header {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.8em;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+.pagination .page-link {
+    color: #0d6efd;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Filters
+    $('#statusFilter, #typeFilter, #sortFilter').change(filterRoutes);
+    $('#searchBtn').click(searchRoutes);
+    $('#searchInput').keypress(function(e) {
+        if (e.which === 13) searchRoutes();
+    });
+    
+    // Assign route
+    $('.assign-route').click(function() {
+        const routeId = $(this).data('route-id');
+        const busId = $(this).data('bus-id');
+        const routeName = $(this).closest('.card').find('.card-header h5').text();
+        
+        $('#routeName').text(routeName);
+        $('#busNumber').text('{{ assign_bus_number }}');
+        
+        $('#assignRouteModal').data('route-id', routeId).data('bus-id', busId).modal('show');
+    });
+    
+    // Confirm assign
+    $('#confirmAssign').click(function() {
+        const routeId = $('#assignRouteModal').data('route-id');
+        const busId = $('#assignRouteModal').data('bus-id');
+        const effectiveDate = $('#effectiveDate').val();
+        const notes = $('#assignmentNotes').val();
+        
+        $.ajax({
+            url: '/api/routes/assign/',
+            method: 'POST',
+            data: {
+                route_id: routeId,
+                bus_id: busId,
+                effective_date: effectiveDate,
+                notes: notes,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            beforeSend: function() {
+                $('#confirmAssign').prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin me-2"></i>Assigning...');
+            },
+            success: function(response) {
+                $('#assignRouteModal').modal('hide');
+                showAlert('success', 'Route assigned successfully!');
+                setTimeout(() => {
+                    window.location.href = "{% url 'buses:detail' request.GET.assign_bus|default:0 %}";
+                }, 1500);
+            },
+            error: function() {
+                showAlert('danger', 'Failed to assign route.');
+                $('#confirmAssign').prop('disabled', false).html('Assign Route');
+            }
+        });
+    });
+});
+
+function filterRoutes() {
+    const status = $('#statusFilter').val();
+    const type = $('#typeFilter').val();
+    const search = $('#searchInput').val().toLowerCase();
+    const sortBy = $('#sortFilter').val();
+    
+    const routes = [];
+    
+    $('.route-card').each(function() {
+        const $card = $(this);
+        const cardStatus = $card.data('status');
+        const cardType = $card.data('type');
+        const cardName = $card.data('name');
+        const cardDistance = parseFloat($card.data('distance')) || 0;
+        const cardStops = parseInt($card.data('stops')) || 0;
+        
+        let show = true;
+        
+        if (status && cardStatus !== status) show = false;
+        if (type && cardType !== type) show = false;
+        if (search && !cardName.includes(search)) show = false;
+        
+        if (show) {
+            routes.push({
+                element: $card,
+                name: cardName,
+                distance: cardDistance,
+                stops: cardStops
+            });
+        } else {
+            $card.hide();
+        }
+    });
+    
+    // Sort routes
+    routes.sort((a, b) => {
+        switch(sortBy) {
+            case 'name':
+                return a.name.localeCompare(b.name);
+            case 'name_desc':
+                return b.name.localeCompare(a.name);
+            case 'distance':
+                return a.distance - b.distance;
+            case 'distance_desc':
+                return b.distance - a.distance;
+            case 'stops':
+                return a.stops - b.stops;
+            case 'stops_desc':
+                return b.stops - a.stops;
+            default:
+                return 0;
+        }
+    });
+    
+    // Reorder and show
+    $('#routesGrid').empty();
+    routes.forEach(route => {
+        $('#routesGrid').append(route.element);
+        route.element.show();
+    });
+}
+
+function searchRoutes() {
+    filterRoutes();
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 1050;" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('body').append(alertHtml);
+    
+    setTimeout(() => {
+        $('.alert').alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}

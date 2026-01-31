@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add New Driver - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1"><i class="fas fa-user-tie me-2"></i> Add New Driver</h2>
+                    <p class="text-muted mb-0">Register a new driver in the system</p>
+                </div>
+                <div>
+                    <a href="{% url 'drivers:list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i> Driver Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="driverCreateForm">
+                        {% csrf_token %}
+                        
+                        <!-- Personal Information -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-id-card me-2"></i> Personal Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.first_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.last_name|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.username|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.email|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.phone|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.date_of_birth|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.gender|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.address|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Driving Information -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-id-badge me-2"></i> Driving Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.license_number|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.license_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.experience|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.joined_date|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.license_issue_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.license_expiry_date|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.vehicle_types|as_crispy_field }}
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Employment Information -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-briefcase me-2"></i> Employment Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.employment_type|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.shift|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.salary|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.bank_account|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.emergency_contact_name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.emergency_contact_phone|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.emergency_contact_relation|as_crispy_field }}
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Account Settings -->
+                        <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-user-shield me-2"></i> Account Settings</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.password1|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.password2|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.is_active|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.send_welcome_email|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+                        
+                        <!-- Driver Photo Upload -->
+                        <div class="mb-4">
+                            <label class="form-label">Driver Photo</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" name="photo" accept="image/*" id="driverPhotoInput">
+                                <button class="btn btn-outline-secondary" type="button" id="clearPhotoBtn">Clear</button>
+                            </div>
+                            <div class="form-text">Upload a clear passport-size photo (max 2MB, JPG/PNG)</div>
+                            <div class="mt-2" id="photoPreview"></div>
+                        </div>
+                        
+                        <!-- License Copy Upload -->
+                        <div class="mb-4">
+                            <label class="form-label">License Copy</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" name="license_copy" accept="image/*,.pdf" id="licenseInput">
+                            </div>
+                            <div class="form-text">Upload a scan of driving license (max 5MB, JPG/PNG/PDF)</div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> After registration, the driver will receive login credentials and can access the driver dashboard.
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="reset" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-redo me-2"></i> Reset Form
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-save me-2"></i> Add Driver
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Quick Help -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i> Quick Help</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Required Fields:</h6>
+                            <ul class="small">
+                                <li><strong>Full Name:</strong> Driver's complete name</li>
+                                <li><strong>Username:</strong> Unique login ID</li>
+                                <li><strong>License Number:</strong> Valid driving license</li>
+                                <li><strong>Phone:</strong> Contact number</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Tips:</h6>
+                            <ul class="small">
+                                <li>Use driver ID as username (e.g., DRV001)</li>
+                                <li>Set strong password for security</li>
+                                <li>Upload clear photo for identification</li>
+                                <li>Verify license expiry date</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Photo preview
+    $('#driverPhotoInput').change(function() {
+        const file = this.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#photoPreview').html(`
+                    <div class="border rounded p-2" style="max-width: 200px;">
+                        <img src="${e.target.result}" class="img-fluid rounded">
+                        <div class="mt-2">
+                            <small class="text-muted">${file.name} (${(file.size/1024).toFixed(2)} KB)</small>
+                        </div>
+                    </div>
+                `);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Clear photo
+    $('#clearPhotoBtn').click(function() {
+        $('#driverPhotoInput').val('');
+        $('#photoPreview').empty();
+    });
+    
+    // Auto-suggest username
+    $('#id_first_name, #id_last_name').on('blur', function() {
+        if (!$('#id_username').val()) {
+            const firstName = $('#id_first_name').val().toLowerCase();
+            const lastName = $('#id_last_name').val().toLowerCase().charAt(0);
+            if (firstName && lastName) {
+                const suggested = firstName + lastName;
+                $('#id_username').val(suggested);
+            }
+        }
+    });
+    
+    // License expiry alert
+    $('#id_license_expiry_date').change(function() {
+        if ($(this).val()) {
+            const expiryDate = new Date($(this).val());
+            const today = new Date();
+            const diffTime = expiryDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) {
+                alert('⚠️ License has already expired!');
+            } else if (diffDays < 30) {
+                alert('⚠️ License expires in less than 30 days!');
+            }
+        }
+    });
+    
+    // Form validation
+    $('#driverCreateForm').submit(function(e) {
+        e.preventDefault();
+        
+        // Validate required fields
+        const requiredFields = [
+            '#id_first_name', '#id_last_name', '#id_username',
+            '#id_phone', '#id_license_number', '#id_experience'
+        ];
+        
+        let isValid = true;
+        requiredFields.forEach(field => {
+            if (!$(field).val()) {
+                isValid = false;
+                $(field).addClass('is-invalid');
+            } else {
+                $(field).removeClass('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            showAlert('danger', 'Please fill all required fields.');
+            return;
+        }
+        
+        // Validate passwords
+        const password1 = $('#id_password1').val();
+        const password2 = $('#id_password2').val();
+        
+        if (password1 !== password2) {
+            showAlert('danger', 'Passwords do not match.');
+            return;
+        }
+        
+        if (password1.length < 8) {
+            showAlert('danger', 'Password must be at least 8 characters long.');
+            return;
+        }
+        
+        // Submit form via AJAX
+        const formData = new FormData(this);
+        
+        $('#submitBtn').prop('disabled', true)
+            .html('<i class="fas fa-spinner fa-spin me-2"></i>Adding...');
+        
+        $.ajax({
+            url: '{% url "drivers:create" %}',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', 'Driver added successfully!');
+                    setTimeout(() => {
+                        window.location.href = '{% url "drivers:list" %}';
+                    }, 1500);
+                } else {
+                    showAlert('danger', response.message || 'Failed to add driver.');
+                    $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Add Driver');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Failed to add driver. Please check the form.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).join('<br>');
+                }
+                showAlert('danger', errorMessage);
+                $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Add Driver');
+            }
+        });
+    });
+});
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    // Add new alert
+    $('#driverCreateForm').prepend(alertHtml);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        $('.alert').alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}

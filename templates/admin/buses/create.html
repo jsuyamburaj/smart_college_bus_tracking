@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add New Bus - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1"><i class="fas fa-bus me-2"></i> Add New Bus</h2>
+                    <p class="text-muted mb-0">Add a new bus to the tracking system</p>
+                </div>
+                <div>
+                    <a href="{% url 'buses:list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i> Bus Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data" id="busCreateForm">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.bus_number|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.bus_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.capacity|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.status|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.registration_number|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.manufacturer|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.model_year|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.color|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- GPS Device Information -->
+                        <h6 class="mb-3"><i class="fas fa-satellite-dish me-2"></i> GPS Device Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.device_id|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.device_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.sim_number|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.device_status|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Assignment Information -->
+                        <h6 class="mb-3"><i class="fas fa-user-tie me-2"></i> Assignment Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.driver|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.route|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.current_location|as_crispy_field }}
+                            <small class="text-muted">Leave blank for automatic GPS detection</small>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Features and Facilities -->
+                        <h6 class="mb-3"><i class="fas fa-cogs me-2"></i> Features & Facilities</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.has_ac }}
+                                    <label class="form-check-label" for="{{ form.has_ac.id_for_label }}">
+                                        Air Conditioning
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    {{ form.has_wifi }}
+                                    <label class="form-check-label" for="{{ form.has_wifi.id_for_label }}">
+                                        WiFi Available
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    {{ form.has_cctv }}
+                                    <label class="form-check-label" for="{{ form.has_cctv.id_for_label }}">
+                                        CCTV Cameras
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.has_charging_points }}
+                                    <label class="form-check-label" for="{{ form.has_charging_points.id_for_label }}">
+                                        Charging Points
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    {{ form.has_emergency_exit }}
+                                    <label class="form-check-label" for="{{ form.has_emergency_exit.id_for_label }}">
+                                        Emergency Exit
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    {{ form.is_wheelchair_accessible }}
+                                    <label class="form-check-label" for="{{ form.is_wheelchair_accessible.id_for_label }}">
+                                        Wheelchair Accessible
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.features_notes|as_crispy_field }}
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Maintenance Information -->
+                        <h6 class="mb-3"><i class="fas fa-tools me-2"></i> Maintenance Information</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.last_service_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.next_service_date|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.insurance_expiry|as_crispy_field }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+                        
+                        <!-- Bus Image Upload -->
+                        <div class="mb-4">
+                            <label class="form-label">Bus Photo</label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" name="bus_image" accept="image/*" id="busImageInput">
+                                <button class="btn btn-outline-secondary" type="button" id="clearImageBtn">Clear</button>
+                            </div>
+                            <div class="form-text">Upload a clear photo of the bus (max 5MB, JPG/PNG)</div>
+                            <div class="mt-2" id="imagePreview"></div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> After adding the bus, you can assign schedules and track its location.
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="reset" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-redo me-2"></i> Reset Form
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-save me-2"></i> Add Bus
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Quick Help -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i> Quick Help</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Required Fields:</h6>
+                            <ul class="small">
+                                <li><strong>Bus Number:</strong> Unique identifier for the bus</li>
+                                <li><strong>Capacity:</strong> Maximum number of passengers</li>
+                                <li><strong>Device ID:</strong> Unique ID of the GPS device</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Tips:</h6>
+                            <ul class="small">
+                                <li>Use descriptive bus numbers (e.g., "BUS-001")</li>
+                                <li>Set initial status to "Active" if ready for service</li>
+                                <li>Add driver and route assignments later if unsure</li>
+                                <li>Upload a bus photo for easy identification</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Image preview
+    $('#busImageInput').change(function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#imagePreview').html(`
+                    <div class="border rounded p-2">
+                        <img src="${e.target.result}" class="img-fluid" style="max-height: 200px;">
+                        <div class="mt-2">
+                            <small class="text-muted">${file.name} (${(file.size/1024).toFixed(2)} KB)</small>
+                        </div>
+                    </div>
+                `);
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Clear image
+    $('#clearImageBtn').click(function() {
+        $('#busImageInput').val('');
+        $('#imagePreview').empty();
+    });
+    
+    // Form validation
+    $('#busCreateForm').submit(function(e) {
+        e.preventDefault();
+        
+        // Validate bus number uniqueness
+        const busNumber = $('#id_bus_number').val();
+        if (!busNumber) {
+            showAlert('danger', 'Bus number is required');
+            return;
+        }
+        
+        // Validate capacity
+        const capacity = $('#id_capacity').val();
+        if (!capacity || capacity < 1) {
+            showAlert('danger', 'Please enter a valid capacity');
+            return;
+        }
+        
+        // Validate device ID
+        const deviceId = $('#id_device_id').val();
+        if (!deviceId) {
+            showAlert('danger', 'GPS Device ID is required');
+            return;
+        }
+        
+        // Submit form via AJAX
+        const formData = new FormData(this);
+        
+        $('#submitBtn').prop('disabled', true)
+            .html('<i class="fas fa-spinner fa-spin me-2"></i>Adding...');
+        
+        $.ajax({
+            url: '{% url "buses:create" %}',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', 'Bus added successfully!');
+                    setTimeout(() => {
+                        window.location.href = '{% url "buses:list" %}';
+                    }, 1500);
+                } else {
+                    showAlert('danger', response.message || 'Failed to add bus.');
+                    $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Add Bus');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Failed to add bus. Please check the form.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).join('<br>');
+                }
+                showAlert('danger', errorMessage);
+                $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Add Bus');
+            }
+        });
+    });
+    
+    // Auto-calculate next service date
+    $('#id_last_service_date').change(function() {
+        if ($(this).val()) {
+            const lastService = new Date($(this).val());
+            const nextService = new Date(lastService);
+            nextService.setMonth(nextService.getMonth() + 6); // 6 months interval
+            
+            const formattedDate = nextService.toISOString().split('T')[0];
+            $('#id_next_service_date').val(formattedDate);
+        }
+    });
+    
+    // Auto-suggest bus number
+    $('#id_bus_type').change(function() {
+        const busType = $(this).val();
+        if (busType && !$('#id_bus_number').val()) {
+            // Generate suggested bus number
+            const prefix = busType === 'ac' ? 'AC-' : busType === 'non_ac' ? 'NA-' : 'GEN-';
+            $.get('/api/buses/last-number/?type=' + busType, function(data) {
+                if (data.last_number) {
+                    const nextNum = parseInt(data.last_number) + 1;
+                    $('#id_bus_number').val(prefix + nextNum.toString().padStart(3, '0'));
+                } else {
+                    $('#id_bus_number').val(prefix + '001');
+                }
+            });
+        }
+    });
+});
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    // Add new alert
+    $('#busCreateForm').prepend(alertHtml);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        $('.alert').alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}

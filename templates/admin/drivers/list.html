@@ -1,0 +1,555 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Driver Management - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1"><i class="fas fa-user-tie me-2"></i> Driver Management</h2>
+                    <p class="text-muted mb-0">Manage all drivers in the system</p>
+                </div>
+                <div>
+                    <a href="{% url 'drivers:create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i> Add New Driver
+                    </a>
+                    {% if request.GET.assign_bus %}
+                    <a href="{% url 'buses:detail' request.GET.assign_bus %}" class="btn btn-outline-warning">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Bus
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-primary border-4 shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                                Total Drivers
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ total_drivers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-success border-4 shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                                Active Drivers
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ active_drivers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-warning border-4 shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                                Available Drivers
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ available_drivers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-start border-info border-4 shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs fw-bold text-info text-uppercase mb-1">
+                                Avg. Experience
+                            </div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">{{ avg_experience }} years</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-graduation-cap fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Status Filter</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="on_leave">On Leave</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Experience Filter</label>
+                    <select class="form-select" id="experienceFilter">
+                        <option value="">All Experience</option>
+                        <option value="junior">Junior (0-2 years)</option>
+                        <option value="mid">Mid (3-5 years)</option>
+                        <option value="senior">Senior (6+ years)</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Availability</label>
+                    <select class="form-select" id="availabilityFilter">
+                        <option value="">All</option>
+                        <option value="available">Available</option>
+                        <option value="assigned">Assigned to Bus</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Search</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search drivers...">
+                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drivers Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i> All Drivers</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="driversTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Driver</th>
+                            <th>License</th>
+                            <th>Experience</th>
+                            <th>Contact</th>
+                            <th>Assigned Bus</th>
+                            <th>Status</th>
+                            <th>Rating</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for driver in drivers %}
+                        <tr data-driver-id="{{ driver.id }}" 
+                            data-status="{{ driver.user.is_active|yesno:'active,inactive' }}"
+                            data-experience="{{ driver.experience }}"
+                            data-available="{{ driver.assigned_bus|yesno:'assigned,available' }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        {% if driver.user.photo %}
+                                        <img src="{{ driver.user.photo.url }}" alt="{{ driver.user.get_full_name }}" 
+                                             class="rounded-circle" width="40" height="40">
+                                        {% else %}
+                                        <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center" 
+                                             style="width: 40px; height: 40px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <strong>{{ driver.user.get_full_name }}</strong><br>
+                                        <small class="text-muted">ID: {{ driver.user.username }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold">{{ driver.license_number }}</span><br>
+                                <small class="text-muted">{{ driver.license_type|default:"-" }}</small>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ driver.experience }} years</div>
+                                <small class="text-muted">Joined: {{ driver.joined_date|date:"M Y" }}</small>
+                            </td>
+                            <td>
+                                <div><i class="fas fa-phone me-2"></i>{{ driver.user.phone|default:"-" }}</div>
+                                <div><i class="fas fa-envelope me-2"></i>{{ driver.user.email|truncatechars:20 }}</div>
+                            </td>
+                            <td>
+                                {% if driver.assigned_bus %}
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-bus text-primary"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-2">
+                                        <strong>{{ driver.assigned_bus.bus_number }}</strong><br>
+                                        <small class="text-muted">{{ driver.assigned_bus.route.name|default:"No route" }}</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="badge bg-secondary">Not assigned</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if driver.user.is_active %}success{% else %}danger{% endif %}">
+                                    {{ driver.user.is_active|yesno:"Active,Inactive" }}
+                                </span>
+                                {% if driver.on_leave %}
+                                <span class="badge bg-warning ms-1">On Leave</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="text-warning me-2">
+                                        {% for i in "12345" %}
+                                        {% if forloop.counter <= driver.rating %}
+                                        <i class="fas fa-star"></i>
+                                        {% else %}
+                                        <i class="far fa-star"></i>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <span class="fw-bold">{{ driver.rating|floatformat:1 }}/5</span>
+                                </div>
+                                <small class="text-muted">{{ driver.total_trips }} trips</small>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'drivers:detail' driver.id %}" class="btn btn-sm btn-outline-primary" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'drivers:update' driver.id %}" class="btn btn-sm btn-outline-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if request.GET.assign_bus and not driver.assigned_bus %}
+                                    <button class="btn btn-sm btn-outline-success assign-driver" 
+                                            data-driver-id="{{ driver.id }}" 
+                                            data-bus-id="{{ request.GET.assign_bus }}" title="Assign to Bus">
+                                        <i class="fas fa-link"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if driver.assigned_bus and not request.GET.assign_bus %}
+                                    <button class="btn btn-sm btn-outline-danger unassign-driver" 
+                                            data-driver-id="{{ driver.id }}" title="Unassign">
+                                        <i class="fas fa-unlink"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                                <h5>No Drivers Found</h5>
+                                <p class="text-muted">No drivers have been added yet.</p>
+                                <a href="{% url 'drivers:create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i> Add First Driver
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted">Showing {{ drivers|length }} of {{ total_drivers }} drivers</span>
+                </div>
+                <div>
+                    {% if drivers.has_other_pages %}
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            {% if drivers.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ drivers.previous_page_number }}">Previous</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for i in drivers.paginator.page_range %}
+                            {% if drivers.number == i %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ i }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if drivers.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ drivers.next_page_number }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Driver Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-link me-2"></i> Assign Driver to Bus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Assign driver <strong id="driverName"></strong> to bus <strong id="busNumber"></strong>?</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This driver will be responsible for all trips on this bus.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Effective Date</label>
+                    <input type="date" class="form-control" id="effectiveDate" value="{{ today|date:'Y-m-d' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" id="assignmentNotes" rows="2" placeholder="Any special instructions..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAssign">Assign Driver</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Unassign Driver Modal -->
+<div class="modal fade" id="unassignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-unlink me-2"></i> Unassign Driver</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Unassign driver <strong id="unassignDriverName"></strong> from their current bus?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This bus will be without a driver until a new assignment is made.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Reason</label>
+                    <select class="form-select" id="unassignReason">
+                        <option value="leave">Driver on Leave</option>
+                        <option value="transfer">Transfer to Another Bus</option>
+                        <option value="termination">Driver Termination</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" id="unassignNotes" rows="2" placeholder="Explain the reason..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmUnassign">Unassign Driver</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.8em;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+#driversTable tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.text-warning {
+    color: #ffc107 !important;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Filters
+    $('#statusFilter, #experienceFilter, #availabilityFilter').change(filterDrivers);
+    $('#searchBtn').click(searchDrivers);
+    $('#searchInput').keypress(function(e) {
+        if (e.which === 13) searchDrivers();
+    });
+    
+    // Assign driver
+    $('.assign-driver').click(function() {
+        const driverId = $(this).data('driver-id');
+        const busId = $(this).data('bus-id');
+        const driverName = $(this).closest('tr').find('td:first strong').text();
+        
+        $('#driverName').text(driverName);
+        $('#busNumber').text('{{ assign_bus_number }}');
+        
+        $('#assignModal').data('driver-id', driverId).data('bus-id', busId).modal('show');
+    });
+    
+    // Unassign driver
+    $('.unassign-driver').click(function() {
+        const driverId = $(this).data('driver-id');
+        const driverName = $(this).closest('tr').find('td:first strong').text();
+        
+        $('#unassignDriverName').text(driverName);
+        $('#unassignModal').data('driver-id', driverId).modal('show');
+    });
+    
+    // Confirm assign
+    $('#confirmAssign').click(function() {
+        const driverId = $('#assignModal').data('driver-id');
+        const busId = $('#assignModal').data('bus-id');
+        const effectiveDate = $('#effectiveDate').val();
+        const notes = $('#assignmentNotes').val();
+        
+        $.ajax({
+            url: '/api/drivers/assign/',
+            method: 'POST',
+            data: {
+                driver_id: driverId,
+                bus_id: busId,
+                effective_date: effectiveDate,
+                notes: notes,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            beforeSend: function() {
+                $('#confirmAssign').prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin me-2"></i>Assigning...');
+            },
+            success: function(response) {
+                $('#assignModal').modal('hide');
+                showAlert('success', 'Driver assigned successfully!');
+                setTimeout(() => {
+                    window.location.href = "{% url 'buses:detail' request.GET.assign_bus|default:0 %}";
+                }, 1500);
+            },
+            error: function() {
+                showAlert('danger', 'Failed to assign driver.');
+                $('#confirmAssign').prop('disabled', false).html('Assign Driver');
+            }
+        });
+    });
+    
+    // Confirm unassign
+    $('#confirmUnassign').click(function() {
+        const driverId = $('#unassignModal').data('driver-id');
+        const reason = $('#unassignReason').val();
+        const notes = $('#unassignNotes').val();
+        
+        $.ajax({
+            url: '/api/drivers/unassign/',
+            method: 'POST',
+            data: {
+                driver_id: driverId,
+                reason: reason,
+                notes: notes,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function() {
+                $('#unassignModal').modal('hide');
+                showAlert('success', 'Driver unassigned successfully!');
+                location.reload();
+            }
+        });
+    });
+});
+
+function filterDrivers() {
+    const status = $('#statusFilter').val();
+    const experience = $('#experienceFilter').val();
+    const availability = $('#availabilityFilter').val();
+    const search = $('#searchInput').val().toLowerCase();
+    
+    $('tbody tr').each(function() {
+        const $row = $(this);
+        const rowStatus = $row.data('status');
+        const rowExperience = parseInt($row.data('experience'));
+        const rowAvailable = $row.data('available');
+        const rowText = $row.text().toLowerCase();
+        
+        let show = true;
+        
+        if (status && rowStatus !== status) show = false;
+        if (experience) {
+            if (experience === 'junior' && rowExperience > 2) show = false;
+            if (experience === 'mid' && (rowExperience <= 2 || rowExperience > 5)) show = false;
+            if (experience === 'senior' && rowExperience <= 5) show = false;
+        }
+        if (availability && rowAvailable !== availability) show = false;
+        if (search && !rowText.includes(search)) show = false;
+        
+        $row.toggle(show);
+    });
+}
+
+function searchDrivers() {
+    filterDrivers();
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show position-fixed" 
+             style="top: 20px; right: 20px; z-index: 1050;" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('body').append(alertHtml);
+    
+    setTimeout(() => {
+        $('.alert').alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}

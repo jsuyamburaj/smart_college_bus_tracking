@@ -1,0 +1,920 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Navigation - Driver Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0" style="height: 100vh;">
+    <!-- Navigation Header -->
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center">
+                <button class="btn btn-outline-light me-3" id="toggleSidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                    <h5 class="mb-0 text-white">
+                        <i class="fas fa-road me-2"></i>Driver Navigation
+                    </h5>
+                    <small class="text-light">
+                        Bus: {{ bus.bus_number|default:"Not assigned" }} | 
+                        Route: {{ route.name|default:"No route" }}
+                    </small>
+                </div>
+            </div>
+            
+            <div class="d-flex align-items-center">
+                <div class="me-4 text-center">
+                    <div class="text-white fw-bold" id="currentTime">--:--</div>
+                    <small class="text-light">Current Time</small>
+                </div>
+                <div class="me-4 text-center">
+                    <div class="text-white fw-bold" id="etaToNext">--:--</div>
+                    <small class="text-light">ETA Next Stop</small>
+                </div>
+                <button class="btn btn-success me-2" id="startTripBtn">
+                    <i class="fas fa-play me-2"></i>Start Trip
+                </button>
+                <button class="btn btn-danger" id="emergencyBtn" data-bs-toggle="modal" data-bs-target="#emergencyModal">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Emergency
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="row g-0" style="height: calc(100vh - 56px);">
+        <!-- Sidebar -->
+        <div class="col-lg-3 col-xl-2 bg-light border-end" id="sidebar">
+            <div class="sidebar-content p-3" style="height: 100%; overflow-y: auto;">
+                <!-- Trip Info -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-primary text-white py-2">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Trip Info</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <small class="text-muted">Bus Number</small>
+                            <p class="fw-bold mb-0">{{ bus.bus_number|default:"N/A" }}</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Current Stop</small>
+                            <p class="fw-bold mb-0" id="currentStop">--</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Next Stop</small>
+                            <p class="fw-bold mb-0" id="nextStop">--</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Passengers</small>
+                            <p class="fw-bold mb-0" id="passengerCount">0/{{ bus.capacity|default:"--" }}</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Trip Duration</small>
+                            <p class="fw-bold mb-0" id="tripDuration">00:00</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Distance Covered</small>
+                            <p class="fw-bold mb-0" id="distanceCovered">0 km</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Controls -->
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-success text-white py-2">
+                        <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Controls</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" id="startNavigation">
+                                <i class="fas fa-directions me-2"></i>Start Navigation
+                            </button>
+                            <button class="btn btn-outline-warning" id="skipStopBtn">
+                                <i class="fas fa-forward me-2"></i>Skip Next Stop
+                            </button>
+                            <button class="btn btn-outline-info" id="announcementBtn" data-bs-toggle="modal" data-bs-target="#announcementModal">
+                                <i class="fas fa-bullhorn me-2"></i>Announcement
+                            </button>
+                            <button class="btn btn-outline-secondary" id="takeBreakBtn">
+                                <i class="fas fa-coffee me-2"></i>Take Break
+                            </button>
+                            <button class="btn btn-outline-danger" id="endTripBtn">
+                                <i class="fas fa-stop me-2"></i>End Trip
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Stops -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white py-2">
+                        <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Route Stops</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush" id="stopsList" style="max-height: 300px; overflow-y: auto;">
+                            {% for stop in route.stops.all %}
+                            <div class="list-group-item stop-item" data-stop-id="{{ stop.id }}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="me-2">
+                                        <h6 class="mb-1">Stop {{ forloop.counter }}</h6>
+                                        <small class="text-muted">{{ stop.name }}</small>
+                                        <div class="mt-1">
+                                            <small>ETA: <span class="fw-bold stop-eta">--:--</span></small>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-light text-dark stop-status">Upcoming</span>
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-success mark-visited-btn" data-stop-id="{{ stop.id }}">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="list-group-item text-center text-muted py-3">
+                                <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
+                                <p>No stops assigned</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="mt-3">
+                    <button class="btn btn-warning w-100 mb-2" id="scanQRBtn">
+                        <i class="fas fa-qrcode me-2"></i>Scan QR Code
+                    </button>
+                    <button class="btn btn-info w-100 mb-2" id="viewPassengerListBtn">
+                        <i class="fas fa-users me-2"></i>Passenger List
+                    </button>
+                    <button class="btn btn-secondary w-100" id="tripHistoryBtn">
+                        <i class="fas fa-history me-2"></i>Trip History
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Map Area -->
+        <div class="col-lg-9 col-xl-10">
+            <div id="navigationMap" style="height: 100%;"></div>
+            
+            <!-- Floating Controls -->
+            <div class="floating-controls">
+                <div class="btn-group-vertical" role="group">
+                    <button class="btn btn-light" id="mapZoomIn" title="Zoom In">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="btn btn-light" id="mapZoomOut" title="Zoom Out">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button class="btn btn-light" id="centerOnBus" title="Center on Bus">
+                        <i class="fas fa-bus"></i>
+                    </button>
+                    <button class="btn btn-light" id="toggleSatellite" title="Satellite View">
+                        <i class="fas fa-satellite"></i>
+                    </button>
+                    <button class="btn btn-light" id="reportTraffic" title="Report Traffic">
+                        <i class="fas fa-traffic-light"></i>
+                    </button>
+                </div>
+                
+                <div class="status-indicators mt-3">
+                    <div class="status-indicator bg-success" id="gpsStatus" title="GPS Status">
+                        <i class="fas fa-satellite-dish"></i>
+                    </div>
+                    <div class="status-indicator bg-info" id="networkStatus" title="Network Status">
+                        <i class="fas fa-wifi"></i>
+                    </div>
+                    <div class="status-indicator bg-warning" id="batteryStatus" title="Battery">
+                        <i class="fas fa-battery-three-quarters"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Speedometer -->
+            <div class="speedometer">
+                <div class="speedometer-inner">
+                    <div class="speed-value" id="currentSpeed">0</div>
+                    <div class="speed-unit">km/h</div>
+                    <div class="speed-limit">Limit: 40</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Emergency Modal -->
+<div class="modal fade" id="emergencyModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Emergency Alert</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-exclamation-circle fa-4x text-danger mb-3"></i>
+                    <h4>Emergency Assistance Required</h4>
+                    <p class="text-muted">Select emergency type:</p>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-danger w-100 emergency-type" data-type="accident">
+                            <i class="fas fa-car-crash me-2"></i>Accident
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-danger w-100 emergency-type" data-type="breakdown">
+                            <i class="fas fa-car-battery me-2"></i>Breakdown
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-danger w-100 emergency-type" data-type="medical">
+                            <i class="fas fa-ambulance me-2"></i>Medical Emergency
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-danger w-100 emergency-type" data-type="other">
+                            <i class="fas fa-exclamation me-2"></i>Other
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-4" id="emergencyDetails" style="display: none;">
+                    <textarea class="form-control" id="emergencyDescription" rows="3" placeholder="Describe the emergency..."></textarea>
+                    <div class="mt-3">
+                        <button class="btn btn-danger w-100" id="sendEmergencyAlert">
+                            <i class="fas fa-paper-plane me-2"></i>Send Emergency Alert
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Announcement Modal -->
+<div class="modal fade" id="announcementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-bullhorn me-2"></i>Make Announcement</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="announcementForm">
+                    <div class="mb-3">
+                        <label class="form-label">Announcement Type</label>
+                        <select class="form-select" name="announcement_type">
+                            <option value="general">General Announcement</option>
+                            <option value="delay">Delay Announcement</option>
+                            <option value="stop">Stop Change</option>
+                            <option value="safety">Safety Announcement</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" name="message" rows="4" placeholder="Type your announcement here..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Priority</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="priority" value="low" id="priorityLow">
+                            <label class="form-check-label" for="priorityLow">Low</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="priority" value="normal" id="priorityNormal" checked>
+                            <label class="form-check-label" for="priorityNormal">Normal</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="priority" value="high" id="priorityHigh">
+                            <label class="form-check-label" for="priorityHigh">High</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-info" id="sendAnnouncement">Send Announcement</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+body {
+    overflow: hidden;
+}
+
+#navigationMap {
+    width: 100%;
+}
+
+.floating-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.floating-controls .btn-group-vertical {
+    background: white;
+    border-radius: 8px;
+    padding: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.floating-controls .btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50% !important;
+    margin: 2px 0;
+}
+
+.status-indicators {
+    margin-top: 10px;
+    background: white;
+    border-radius: 8px;
+    padding: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.status-indicator {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin: 2px 0;
+    font-size: 1.2em;
+}
+
+.speedometer {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.speedometer-inner {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border: 3px solid #198754;
+}
+
+.speed-value {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #198754;
+}
+
+.speed-unit {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: -5px;
+}
+
+.speed-limit {
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 5px;
+}
+
+.sidebar-content {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.stop-item {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.stop-item:hover {
+    background-color: #f8f9fa;
+}
+
+.stop-item.active {
+    background-color: #e3f2fd;
+    border-left: 4px solid #0d6efd;
+}
+
+.stop-status {
+    font-size: 0.75em;
+    padding: 2px 8px;
+}
+
+.stop-item.completed .stop-status {
+    background-color: #198754 !important;
+    color: white !important;
+}
+
+.stop-item.current .stop-status {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+#stopsList {
+    scrollbar-width: thin;
+}
+
+#stopsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#stopsList::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+#stopsList::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+#stopsList::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.emergency-type {
+    padding: 15px;
+    font-size: 1.1em;
+}
+
+.emergency-type:hover {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet Routing Machine -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+<script>
+let navMap;
+let routeControl;
+let currentRoute = [];
+let tripStartTime;
+let totalDistance = 0;
+let currentStopIndex = 0;
+const stops = {{ route.stops.all|safe|default:"[]" }};
+const busData = {{ bus_data|default:"{}"|safe }};
+
+$(document).ready(function() {
+    // Initialize map
+    initNavigationMap();
+    
+    // Initialize time
+    updateTime();
+    setInterval(updateTime, 1000);
+    
+    // Initialize WebSocket for driver updates
+    initDriverWebSocket();
+    
+    // Event Listeners
+    $('#toggleSidebar').click(toggleSidebar);
+    $('#startTripBtn').click(startTrip);
+    $('#startNavigation').click(startNavigation);
+    $('#skipStopBtn').click(skipStop);
+    $('#takeBreakBtn').click(takeBreak);
+    $('#endTripBtn').click(endTrip);
+    $('#scanQRBtn').click(scanQRCode);
+    $('#viewPassengerListBtn').click(viewPassengerList);
+    $('#tripHistoryBtn').click(viewTripHistory);
+    $('#mapZoomIn').click(() => navMap.zoomIn());
+    $('#mapZoomOut').click(() => navMap.zoomOut());
+    $('#centerOnBus').click(centerOnBus);
+    $('#toggleSatellite').click(toggleSatelliteView);
+    $('#reportTraffic').click(reportTraffic);
+    
+    // Stop item clicks
+    $(document).on('click', '.stop-item', function() {
+        const stopId = $(this).data('stop-id');
+        setNextStop(stopId);
+    });
+    
+    // Mark visited button
+    $(document).on('click', '.mark-visited-btn', function(e) {
+        e.stopPropagation();
+        const stopId = $(this).data('stop-id');
+        markStopVisited(stopId);
+    });
+    
+    // Emergency modal
+    $('.emergency-type').click(function() {
+        const type = $(this).data('type');
+        $('#emergencyDetails').show();
+        $('#sendEmergencyAlert').data('type', type);
+    });
+    
+    $('#sendEmergencyAlert').click(sendEmergencyAlert);
+    $('#sendAnnouncement').click(sendAnnouncement);
+    
+    // Update status indicators
+    updateStatusIndicators();
+    setInterval(updateStatusIndicators, 30000); // Update every 30 seconds
+    
+    // Initialize stops list
+    updateStopsList();
+});
+
+function initNavigationMap() {
+    // Default center
+    const defaultCenter = [12.9716, 77.5946];
+    
+    navMap = L.map('navigationMap').setView(defaultCenter, 13);
+    
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(navMap);
+    
+    // Add bus marker if location available
+    if (busData && busData.latitude && busData.longitude) {
+        addBusMarker(busData);
+    }
+}
+
+function initDriverWebSocket() {
+    const driverId = "{{ request.user.id }}";
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${wsScheme}://${window.location.host}/ws/driver/${driverId}/`;
+    
+    try {
+        const socket = new WebSocket(wsUrl);
+        
+        socket.onopen = function() {
+            console.log('Driver WebSocket connected');
+            $('#networkStatus').removeClass('bg-danger').addClass('bg-success');
+        };
+        
+        socket.onmessage = function(e) {
+            try {
+                const data = JSON.parse(e.data);
+                handleDriverMessage(data);
+            } catch (error) {
+                console.error('Error parsing driver message:', error);
+            }
+        };
+        
+        socket.onclose = function() {
+            console.log('Driver WebSocket disconnected');
+            $('#networkStatus').removeClass('bg-success').addClass('bg-danger');
+            setTimeout(initDriverWebSocket, 5000);
+        };
+    } catch (error) {
+        console.error('Failed to initialize driver WebSocket:', error);
+    }
+}
+
+function handleDriverMessage(data) {
+    switch(data.type) {
+        case 'passenger_update':
+            updatePassengerCount(data.count);
+            break;
+        case 'location_update':
+            updateDriverLocation(data);
+            break;
+        case 'emergency_alert':
+            showEmergencyNotification(data);
+            break;
+        case 'announcement_confirmation':
+            showAlert('success', 'Announcement sent successfully!');
+            break;
+    }
+}
+
+function updateTime() {
+    const now = new Date();
+    $('#currentTime').text(now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+}
+
+function toggleSidebar() {
+    $('#sidebar').toggleClass('d-none d-lg-block');
+}
+
+function startTrip() {
+    if (!confirm('Are you sure you want to start the trip?')) return;
+    
+    tripStartTime = new Date();
+    $('#startTripBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Trip in Progress');
+    $('#endTripBtn').prop('disabled', false);
+    
+    // Start trip timer
+    setInterval(updateTripDuration, 1000);
+    
+    // Send trip start notification
+    $.ajax({
+        url: '/api/trip/start/',
+        method: 'POST',
+        data: {
+            bus_id: busData.id,
+            driver_id: "{{ request.user.id }}",
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+            showAlert('success', 'Trip started successfully!');
+        }
+    });
+}
+
+function startNavigation() {
+    if (stops.length < 2) {
+        alert('Need at least 2 stops for navigation');
+        return;
+    }
+    
+    // Clear existing route
+    if (routeControl) {
+        navMap.removeControl(routeControl);
+    }
+    
+    // Create route between stops
+    const waypoints = stops.map(stop => L.latLng(stop.latitude, stop.longitude));
+    
+    routeControl = L.Routing.control({
+        waypoints: waypoints,
+        routeWhileDragging: false,
+        showAlternatives: false,
+        lineOptions: {
+            styles: [{color: '#0d6efd', weight: 5, opacity: 0.7}]
+        },
+        createMarker: function(i, waypoint, n) {
+            return L.marker(waypoint.latLng, {
+                icon: L.divIcon({
+                    className: 'stop-marker',
+                    html: `<div class="stop-marker-inner">${i + 1}</div>`,
+                    iconSize: [30, 30]
+                })
+            });
+        }
+    }).addTo(navMap);
+    
+    showAlert('info', 'Navigation started. Follow the route.');
+}
+
+function skipStop() {
+    if (currentStopIndex >= stops.length - 1) {
+        alert('No more stops to skip');
+        return;
+    }
+    
+    if (confirm('Skip next stop?')) {
+        const stopId = stops[currentStopIndex].id;
+        markStopVisited(stopId);
+        showAlert('warning', 'Stop skipped');
+    }
+}
+
+function takeBreak() {
+    const breakTime = prompt('Enter break duration in minutes:', '15');
+    if (breakTime && !isNaN(breakTime)) {
+        $.ajax({
+            url: '/api/driver/break/',
+            method: 'POST',
+            data: {
+                driver_id: "{{ request.user.id }}",
+                duration: breakTime,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function() {
+                showAlert('info', `Break started for ${breakTime} minutes`);
+            }
+        });
+    }
+}
+
+function endTrip() {
+    if (!confirm('Are you sure you want to end the trip?')) return;
+    
+    $.ajax({
+        url: '/api/trip/end/',
+        method: 'POST',
+        data: {
+            bus_id: busData.id,
+            driver_id: "{{ request.user.id }}",
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+            $('#startTripBtn').prop('disabled', false).html('<i class="fas fa-play me-2"></i>Start Trip');
+            $('#endTripBtn').prop('disabled', true);
+            showAlert('success', 'Trip ended successfully!');
+        }
+    });
+}
+
+function updateTripDuration() {
+    if (!tripStartTime) return;
+    
+    const now = new Date();
+    const diffMs = now - tripStartTime;
+    const diffHrs = Math.floor(diffMs / 3600000);
+    const diffMins = Math.floor((diffMs % 3600000) / 60000);
+    const diffSecs = Math.floor((diffMs % 60000) / 1000);
+    
+    $('#tripDuration').text(
+        `${diffHrs.toString().padStart(2, '0')}:` +
+        `${diffMins.toString().padStart(2, '0')}:` +
+        `${diffSecs.toString().padStart(2, '0')}`
+    );
+}
+
+function updatePassengerCount(count) {
+    $('#passengerCount').text(`${count}/${busData.capacity}`);
+}
+
+function updateDriverLocation(data) {
+    // Update bus marker position
+    // This would be implemented with real GPS data
+    $('#currentSpeed').text(`${data.speed || 0}`);
+    
+    // Calculate distance covered
+    if (data.distance) {
+        totalDistance += data.distance;
+        $('#distanceCovered').text(`${totalDistance.toFixed(2)} km`);
+    }
+}
+
+function markStopVisited(stopId) {
+    const stopIndex = stops.findIndex(stop => stop.id == stopId);
+    if (stopIndex === -1) return;
+    
+    // Update UI
+    $(`.stop-item[data-stop-id="${stopId}"]`).addClass('completed');
+    $(`.stop-item[data-stop-id="${stopId}"] .stop-status`).text('Visited').removeClass('bg-warning').addClass('bg-success');
+    
+    // Update current stop
+    currentStopIndex = stopIndex + 1;
+    if (currentStopIndex < stops.length) {
+        const nextStop = stops[currentStopIndex];
+        $('#currentStop').text(stops[stopIndex].name);
+        $('#nextStop').text(nextStop.name);
+        
+        // Update next stop in list
+        $(`.stop-item[data-stop-id="${nextStop.id}"]`).addClass('current');
+        $(`.stop-item[data-stop-id="${nextStop.id}"] .stop-status`).text('Current').removeClass('bg-light').addClass('bg-primary text-white');
+    }
+}
+
+function setNextStop(stopId) {
+    const stopIndex = stops.findIndex(stop => stop.id == stopId);
+    if (stopIndex === -1 || stopIndex <= currentStopIndex) return;
+    
+    $('#nextStop').text(stops[stopIndex].name);
+    showAlert('info', `Next stop set to: ${stops[stopIndex].name}`);
+}
+
+function updateStopsList() {
+    // This function would update ETAs and status based on real-time data
+    stops.forEach((stop, index) => {
+        const eta = calculateETA(index);
+        $(`.stop-item[data-stop-id="${stop.id}"] .stop-eta`).text(eta);
+    });
+}
+
+function calculateETA(stopIndex) {
+    // Simplified ETA calculation
+    const baseTime = 10; // minutes between stops
+    const etaMinutes = (stopIndex - currentStopIndex) * baseTime;
+    
+    if (etaMinutes <= 0) return 'Now';
+    
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + etaMinutes);
+    return now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
+
+function scanQRCode() {
+    // This would integrate with a QR scanner
+    alert('QR Code scanner would open here. Please ensure camera access is allowed.');
+}
+
+function viewPassengerList() {
+    window.open('/driver/passenger-list/', '_blank');
+}
+
+function viewTripHistory() {
+    window.open('/driver/trip-history/', '_blank');
+}
+
+function centerOnBus() {
+    if (busData && busData.latitude && busData.longitude) {
+        navMap.setView([busData.latitude, busData.longitude], 15);
+    }
+}
+
+function toggleSatelliteView() {
+    alert('Satellite view feature requires additional map provider setup.');
+}
+
+function reportTraffic() {
+    const trafficType = prompt('Enter traffic condition:\n1. Heavy Traffic\n2. Road Block\n3. Accident\n4. Construction', '1');
+    if (trafficType) {
+        showAlert('warning', 'Traffic condition reported');
+    }
+}
+
+function sendEmergencyAlert() {
+    const type = $('#sendEmergencyAlert').data('type');
+    const description = $('#emergencyDescription').val();
+    
+    if (!description.trim()) {
+        alert('Please describe the emergency');
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/emergency/',
+        method: 'POST',
+        data: {
+            type: type,
+            description: description,
+            bus_id: busData.id,
+            driver_id: "{{ request.user.id }}",
+            location: JSON.stringify({lat: busData.latitude, lng: busData.longitude}),
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function() {
+            $('#emergencyModal').modal('hide');
+            showAlert('success', 'Emergency alert sent! Help is on the way.');
+            $('#emergencyDescription').val('');
+            $('#emergencyDetails').hide();
+        }
+    });
+}
+
+function sendAnnouncement() {
+    const formData = $('#announcementForm').serialize();
+    
+    $.ajax({
+        url: '/api/announcement/',
+        method: 'POST',
+        data: formData + '&bus_id=' + busData.id + '&driver_id={{ request.user.id }}',
+        success: function() {
+            $('#announcementModal').modal('hide');
+            showAlert('success', 'Announcement sent to all passengers!');
+            $('#announcementForm')[0].reset();
+        }
+    });
+}
+
+function updateStatusIndicators() {
+    // Simulate status updates
+    const batteryLevel = Math.floor(Math.random() * 30) + 70; // 70-100%
+    $('#batteryStatus').attr('title', `Battery: ${batteryLevel}%`);
+    
+    // Update GPS status
+    if (navigator.geolocation) {
+        $('#gpsStatus').removeClass('bg-danger').addClass('bg-success');
+    }
+}
+
+function showEmergencyNotification(data) {
+    // Show emergency notification to driver
+    const notification = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <h5><i class="fas fa-exclamation-triangle me-2"></i>Emergency Alert from Admin</h5>
+            <p>${data.message}</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(notification);
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show position-fixed" 
+             style="top: 70px; right: 20px; z-index: 1050; max-width: 300px;" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('body').append(alertHtml);
+    
+    setTimeout(() => {
+        $('.alert').alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}

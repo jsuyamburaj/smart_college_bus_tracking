@@ -1,0 +1,542 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Route - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1"><i class="fas fa-route me-2"></i> Create New Route</h2>
+                    <p class="text-muted mb-0">Define a new bus route with stops and schedules</p>
+                </div>
+                <div>
+                    <a href="{% url 'routes:list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Route Details -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Route Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="routeCreateForm">
+                        {% csrf_token %}
+                        
+                        <!-- Basic Information -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.route_type|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.description|as_crispy_field }}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.distance|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.estimated_time|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.start_point|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.end_point|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.status|as_crispy_field }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- Route Stops (Dynamic) -->
+                        <h6 class="mb-3"><i class="fas fa-map-marker-alt me-2"></i> Route Stops</h6>
+                        <div id="stopsContainer">
+                            <div class="stop-item card mb-3">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">Stop Name</label>
+                                            <input type="text" class="form-control stop-name" placeholder="Stop name" required>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">Order</label>
+                                            <input type="number" class="form-control stop-order" value="1" min="1" required>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">Latitude</label>
+                                            <input type="text" class="form-control stop-lat" placeholder="e.g., 12.9716">
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">Longitude</label>
+                                            <input type="text" class="form-control stop-lng" placeholder="e.g., 77.5946">
+                                        </div>
+                                        <div class="col-12 mb-2">
+                                            <label class="form-label">Address</label>
+                                            <textarea class="form-control stop-address" rows="2" placeholder="Full address"></textarea>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">Arrival Time</label>
+                                            <input type="time" class="form-control stop-arrival" value="08:00">
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label">Wait Time (min)</label>
+                                            <input type="number" class="form-control stop-wait" value="2" min="0">
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-danger mt-2 remove-stop">
+                                        <i class="fas fa-trash me-1"></i> Remove Stop
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mb-4">
+                            <button type="button" class="btn btn-outline-primary" id="addStopBtn">
+                                <i class="fas fa-plus me-2"></i> Add Another Stop
+                            </button>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                <i class="fas fa-save me-2"></i> Create Route
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Map & Preview -->
+        <div class="col-lg-6 mb-4">
+            <!-- Route Map -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-map me-2"></i> Route Map Preview</h5>
+                </div>
+                <div class="card-body p-0" style="height: 400px;">
+                    <div id="routeMap"></div>
+                </div>
+                <div class="card-footer bg-white">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Add stops to see them on the map. Click on map to set coordinates.
+                    </small>
+                </div>
+            </div>
+
+            <!-- Route Summary -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i> Route Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Stops Preview</h6>
+                        <div id="stopsPreview" class="mb-3">
+                            <p class="text-muted">No stops added yet.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Route Statistics</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Total Stops</small>
+                                <p class="fw-bold mb-0" id="totalStops">0</p>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Total Distance</small>
+                                <p class="fw-bold mb-0" id="totalDistance">0 km</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-light">
+                        <h6><i class="fas fa-lightbulb me-2 text-warning"></i> Tips:</h6>
+                        <ul class="small mb-0">
+                            <li>Add stops in the order the bus will visit them</li>
+                            <li>Use descriptive stop names for easy identification</li>
+                            <li>Set realistic wait times at each stop (2-5 minutes)</li>
+                            <li>Add coordinates for accurate mapping</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+#routeMap {
+    height: 100%;
+    width: 100%;
+    min-height: 300px;
+}
+
+.stop-item {
+    border-left: 3px solid #0d6efd;
+}
+
+.stop-item:last-child {
+    border-left-color: #198754;
+}
+
+#stopsPreview {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.stop-preview-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 0.9em;
+}
+
+.stop-preview-item:last-child {
+    border-bottom: none;
+}
+
+.leaflet-container {
+    border-radius: 0 0 0.375rem 0.375rem;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+let routeMap;
+let markers = [];
+let polyline;
+
+$(document).ready(function() {
+    // Initialize map
+    initMap();
+    
+    // Add stop button
+    $('#addStopBtn').click(addStop);
+    
+    // Remove stop event delegation
+    $(document).on('click', '.remove-stop', function() {
+        $(this).closest('.stop-item').remove();
+        updatePreview();
+    });
+    
+    // Form submission
+    $('#routeCreateForm').submit(function(e) {
+        e.preventDefault();
+        createRoute();
+    });
+    
+    // Update preview on stop changes
+    $(document).on('input', '.stop-name, .stop-order, .stop-address', updatePreview);
+    
+    // Click on map to set coordinates
+    routeMap.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+        
+        // Update the last stop's coordinates
+        const lastStop = $('.stop-item').last();
+        lastStop.find('.stop-lat').val(lat);
+        lastStop.find('.stop-lng').val(lng);
+        
+        // Add marker
+        addMarker(lat, lng, lastStop.find('.stop-name').val() || 'Stop');
+        updatePreview();
+    });
+});
+
+function initMap() {
+    // Default center (Bangalore)
+    routeMap = L.map('routeMap').setView([12.9716, 77.5946], 12);
+    
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(routeMap);
+}
+
+function addStop() {
+    const stopCount = $('.stop-item').length + 1;
+    const stopHtml = `
+        <div class="stop-item card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Stop Name</label>
+                        <input type="text" class="form-control stop-name" placeholder="Stop ${stopCount}" required>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Order</label>
+                        <input type="number" class="form-control stop-order" value="${stopCount}" min="1" required>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Latitude</label>
+                        <input type="text" class="form-control stop-lat" placeholder="e.g., 12.9716">
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Longitude</label>
+                        <input type="text" class="form-control stop-lng" placeholder="e.g., 77.5946">
+                    </div>
+                    <div class="col-12 mb-2">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control stop-address" rows="2" placeholder="Full address"></textarea>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Arrival Time</label>
+                        <input type="time" class="form-control stop-arrival" value="08:${String(stopCount).padStart(2, '0')}">
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Wait Time (min)</label>
+                        <input type="number" class="form-control stop-wait" value="2" min="0">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger mt-2 remove-stop">
+                    <i class="fas fa-trash me-1"></i> Remove Stop
+                </button>
+            </div>
+        </div>
+    `;
+    
+    $('#stopsContainer').append(stopHtml);
+    updatePreview();
+}
+
+function addMarker(lat, lng, title) {
+    // Clear existing markers
+    markers.forEach(marker => routeMap.removeLayer(marker));
+    markers = [];
+    
+    // Add new marker
+    const marker = L.marker([lat, lng]).addTo(routeMap)
+        .bindPopup(`<strong>${title}</strong><br>${lat}, ${lng}`);
+    markers.push(marker);
+    
+    // Update polyline if we have multiple markers
+    if (markers.length > 1) {
+        updatePolyline();
+    }
+    
+    // Fit bounds to show all markers
+    if (markers.length > 0) {
+        const group = new L.featureGroup(markers);
+        routeMap.fitBounds(group.getBounds());
+    }
+}
+
+function updatePolyline() {
+    if (polyline) {
+        routeMap.removeLayer(polyline);
+    }
+    
+    const latlngs = markers.map(marker => marker.getLatLng());
+    polyline = L.polyline(latlngs, {color: 'blue'}).addTo(routeMap);
+}
+
+function updatePreview() {
+    const stops = [];
+    $('.stop-item').each(function(index) {
+        const name = $(this).find('.stop-name').val() || `Stop ${index + 1}`;
+        const order = $(this).find('.stop-order').val();
+        const address = $(this).find('.stop-address').val();
+        const arrival = $(this).find('.stop-arrival').val();
+        
+        stops.push({
+            name: name,
+            order: order,
+            address: address,
+            arrival: arrival
+        });
+    });
+    
+    // Sort stops by order
+    stops.sort((a, b) => a.order - b.order);
+    
+    // Update preview
+    $('#stopsPreview').empty();
+    if (stops.length === 0) {
+        $('#stopsPreview').html('<p class="text-muted">No stops added yet.</p>');
+    } else {
+        stops.forEach((stop, index) => {
+            $('#stopsPreview').append(`
+                <div class="stop-preview-item">
+                    <div class="d-flex justify-content-between">
+                        <strong>${stop.order}. ${stop.name}</strong>
+                        <small class="text-muted">${stop.arrival || '--:--'}</small>
+                    </div>
+                    <small class="text-muted">${stop.address || 'No address'}</small>
+                </div>
+            `);
+        });
+    }
+    
+    // Update statistics
+    $('#totalStops').text(stops.length);
+    
+    // Update map markers
+    updateMapMarkers();
+}
+
+function updateMapMarkers() {
+    // Clear existing markers
+    markers.forEach(marker => routeMap.removeLayer(marker));
+    markers = [];
+    
+    // Add markers for stops with coordinates
+    $('.stop-item').each(function() {
+        const lat = $(this).find('.stop-lat').val();
+        const lng = $(this).find('.stop-lng').val();
+        const name = $(this).find('.stop-name').val() || 'Stop';
+        
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+            const marker = L.marker([lat, lng]).addTo(routeMap)
+                .bindPopup(`<strong>${name}</strong><br>${lat}, ${lng}`);
+            markers.push(marker);
+        }
+    });
+    
+    // Update polyline
+    if (polyline) {
+        routeMap.removeLayer(polyline);
+    }
+    
+    if (markers.length > 1) {
+        const latlngs = markers.map(marker => marker.getLatLng());
+        polyline = L.polyline(latlngs, {color: 'blue'}).addTo(routeMap);
+        
+        // Fit bounds
+        const group = new L.featureGroup(markers);
+        routeMap.fitBounds(group.getBounds());
+    } else if (markers.length === 1) {
+        routeMap.setView(markers[0].getLatLng(), 15);
+    }
+}
+
+function createRoute() {
+    // Validate form
+    const routeName = $('#id_name').val();
+    if (!routeName) {
+        showAlert('danger', 'Route name is required');
+        return;
+    }
+    
+    // Collect stops data
+    const stops = [];
+    $('.stop-item').each(function(index) {
+        const name = $(this).find('.stop-name').val();
+        if (!name) {
+            showAlert('danger', `Stop ${index + 1} name is required`);
+            return false;
+        }
+        
+        stops.push({
+            name: name,
+            order: $(this).find('.stop-order').val() || (index + 1),
+            latitude: $(this).find('.stop-lat').val(),
+            longitude: $(this).find('.stop-lng').val(),
+            address: $(this).find('.stop-address').val(),
+            arrival_time: $(this).find('.stop-arrival').val(),
+            wait_time: $(this).find('.stop-wait').val()
+        });
+    });
+    
+    if (stops.length === 0) {
+        showAlert('danger', 'At least one stop is required');
+        return;
+    }
+    
+    // Prepare form data
+    const formData = new FormData($('#routeCreateForm')[0]);
+    formData.append('stops', JSON.stringify(stops));
+    
+    // Submit form
+    $('#submitBtn').prop('disabled', true)
+        .html('<i class="fas fa-spinner fa-spin me-2"></i>Creating...');
+    
+    $.ajax({
+        url: '{% url "routes:create" %}',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                showAlert('success', 'Route created successfully!');
+                setTimeout(() => {
+                    window.location.href = '{% url "routes:list" %}';
+                }, 1500);
+            } else {
+                showAlert('danger', response.message || 'Failed to create route.');
+                $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Create Route');
+            }
+        },
+        error: function(xhr) {
+            let errorMessage = 'Failed to create route. Please check the form.';
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                errorMessage = Object.values(xhr.responseJSON.errors).join('<br>');
+            }
+            showAlert('danger', errorMessage);
+            $('#submitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>Create Route');
+        }
+    });
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    // Add new alert
+    $('.card-body').prepend(alertHtml);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        $('.alert').alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}
