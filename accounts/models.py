@@ -33,7 +33,11 @@ class StudentProfile(models.Model):
     year = models.IntegerField(null=True, blank=True)
     semester = models.IntegerField(null=True, blank=True)
     address = models.TextField()
-    emergency_contact = models.CharField(max_length=15)
+    
+    phone = models.CharField(max_length=15, null=True, blank=True)  # <-- added
+    emergency_name = models.CharField(max_length=100, null=True, blank=True)  # <-- added
+    emergency_phone = models.CharField(max_length=15, null=True, blank=True)  # <-- added
+
     assigned_bus = models.ForeignKey(
         'buses.Bus',
         on_delete=models.SET_NULL,

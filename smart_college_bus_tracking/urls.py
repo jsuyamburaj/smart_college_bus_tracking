@@ -22,6 +22,8 @@ urlpatterns = [
     path('tracking/', include('tracking.urls')),
     path('api/', include('api.urls')),
     path('notifications/', include('notifications.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),
+
 
     # Dashboard
     path('dashboard/', TemplateView.as_view(template_name='dashboard.html'), name='dashboard'),

@@ -50,6 +50,7 @@
         font-weight: 600;
         background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
         border: none;
+        transition: all 0.3s;
     }
     
     .btn-register:hover {
@@ -169,6 +170,50 @@
     .password-requirements li.valid::before {
         content: '✓ ';
     }
+    
+    .account-type-card {
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+    
+    .account-type-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .account-type-card.selected {
+        border-color: #4361ee !important;
+        background-color: #f8f9ff;
+    }
+    
+    /* Alert styling */
+    .alert {
+        border-radius: 10px;
+        border: none;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    /* Field error styling */
+    .is-invalid {
+        border-color: #dc3545 !important;
+    }
+    
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
 </style>
 {% endblock %}
 
@@ -183,6 +228,19 @@
         </div>
         
         <div class="register-body">
+            <!-- Display Messages -->
+            {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
             <!-- Step Indicator -->
             <div class="step-indicator">
                 <div class="step active" id="step1">
@@ -213,7 +271,7 @@
                     
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="card account-type-card h-100 border-2" 
+                            <div class="card account-type-card h-100" 
                                  data-type="student"
                                  onclick="selectAccountType('student')">
                                 <div class="card-body text-center p-4">
@@ -229,7 +287,7 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="card account-type-card h-100 border-2" 
+                            <div class="card account-type-card h-100" 
                                  data-type="parent"
                                  onclick="selectAccountType('parent')">
                                 <div class="card-body text-center p-4">
@@ -245,7 +303,7 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="card account-type-card h-100 border-2" 
+                            <div class="card account-type-card h-100" 
                                  data-type="driver"
                                  onclick="selectAccountType('driver')">
                                 <div class="card-body text-center p-4">
@@ -261,7 +319,7 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <div class="card account-type-card h-100 border-2" 
+                            <div class="card account-type-card h-100" 
                                  data-type="admin"
                                  onclick="selectAccountType('admin')">
                                 <div class="card-body text-center p-4">
@@ -277,7 +335,7 @@
                         </div>
                     </div>
                     
-                    <input type="hidden" id="userType" name="user_type" required>
+                    <input type="hidden" id="userType" name="user_type" value="student" required>
                     
                     <div class="d-flex justify-content-between mt-4">
                         <div></div> <!-- Empty div for spacing -->
@@ -331,7 +389,7 @@
                         </div>
                         
                         <!-- Student Specific Fields -->
-                        <div class="student-fields d-none">
+                        <div class="student-fields">
                             <div class="col-md-6">
                                 <label for="rollNumber" class="form-label fw-bold">Roll Number *</label>
                                 <input type="text" 
@@ -366,7 +424,7 @@
                         </div>
                         
                         <!-- Driver Specific Fields -->
-                        <div class="driver-fields d-none">
+                        <div class="driver-fields" style="display: none;">
                             <div class="col-md-6">
                                 <label for="licenseNumber" class="form-label fw-bold">License Number *</label>
                                 <input type="text" 
@@ -413,19 +471,20 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <label for="confirmPassword" class="form-label fw-bold">Confirm Password *</label>
+                            <label for="password2" class="form-label fw-bold">Confirm Password *</label>
                             <input type="password" 
                                    class="form-control" 
-                                   id="confirmPassword" 
+                                   id="password2" 
                                    name="password2" 
                                    required>
+                            <div class="invalid-feedback" id="passwordConfirmError"></div>
                         </div>
                         
                         <div class="col-md-6">
-                            <label for="password" class="form-label fw-bold">Password *</label>
+                            <label for="password1" class="form-label fw-bold">Password *</label>
                             <input type="password" 
                                    class="form-control" 
-                                   id="password" 
+                                   id="password1" 
                                    name="password1" 
                                    required>
                             <div class="password-strength">
@@ -527,7 +586,12 @@
 <script>
     let currentStep = 1;
     const totalSteps = 4;
-    let selectedAccountType = '';
+    let selectedAccountType = 'student';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize with student as default
+        selectAccountType('student');
+    });
     
     // Account type selection
     function selectAccountType(type) {
@@ -535,26 +599,47 @@
         
         // Update UI
         document.querySelectorAll('.account-type-card').forEach(card => {
-            card.classList.remove('border-primary');
-            card.style.borderColor = '#e1e5eb';
+            card.classList.remove('selected');
         });
         
         const selectedCard = document.querySelector(`[data-type="${type}"]`);
-        selectedCard.classList.add('border-primary');
-        selectedCard.style.borderColor = '#4361ee';
+        if (selectedCard) {
+            selectedCard.classList.add('selected');
+        }
         
         // Update hidden field
         document.getElementById('userType').value = type;
         
         // Show/hide specific fields
         document.querySelectorAll('.student-fields, .driver-fields').forEach(field => {
-            field.classList.add('d-none');
+            field.style.display = 'none';
         });
         
         if (type === 'student') {
-            document.querySelector('.student-fields').classList.remove('d-none');
+            document.querySelector('.student-fields').style.display = 'block';
+            // Make student fields required
+            document.getElementById('rollNumber').required = true;
+            document.getElementById('department').required = true;
+            document.getElementById('year').required = true;
+            // Make driver fields not required
+            document.getElementById('licenseNumber').required = false;
+            document.getElementById('experience').required = false;
         } else if (type === 'driver') {
-            document.querySelector('.driver-fields').classList.remove('d-none');
+            document.querySelector('.driver-fields').style.display = 'block';
+            // Make driver fields required
+            document.getElementById('licenseNumber').required = true;
+            document.getElementById('experience').required = true;
+            // Make student fields not required
+            document.getElementById('rollNumber').required = false;
+            document.getElementById('department').required = false;
+            document.getElementById('year').required = false;
+        } else {
+            // For parent and admin, no additional fields required
+            document.getElementById('rollNumber').required = false;
+            document.getElementById('department').required = false;
+            document.getElementById('year').required = false;
+            document.getElementById('licenseNumber').required = false;
+            document.getElementById('experience').required = false;
         }
     }
     
@@ -601,11 +686,13 @@
     
     // Step validation
     function validateStep(step) {
+        let isValid = true;
+        
         switch(step) {
             case 1:
                 if (!selectedAccountType) {
                     alert('Please select an account type.');
-                    return false;
+                    isValid = false;
                 }
                 break;
                 
@@ -617,6 +704,7 @@
                 
                 if (!firstName || !lastName || !email || !phone) {
                     alert('Please fill in all required personal information fields.');
+                    isValid = false;
                     return false;
                 }
                 
@@ -624,7 +712,15 @@
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(email)) {
                     alert('Please enter a valid email address.');
-                    return false;
+                    isValid = false;
+                }
+                
+                // Phone validation (basic)
+                const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+                const phoneDigits = phone.replace(/\D/g, '');
+                if (phoneDigits.length < 10) {
+                    alert('Please enter a valid phone number with at least 10 digits.');
+                    isValid = false;
                 }
                 
                 // Validate specific fields based on account type
@@ -635,7 +731,7 @@
                     
                     if (!rollNumber || !department || !year) {
                         alert('Please fill in all student-specific fields.');
-                        return false;
+                        isValid = false;
                     }
                 } else if (selectedAccountType === 'driver') {
                     const licenseNumber = document.getElementById('licenseNumber').value.trim();
@@ -643,39 +739,54 @@
                     
                     if (!licenseNumber || !experience) {
                         alert('Please fill in all driver-specific fields.');
-                        return false;
+                        isValid = false;
                     }
                 }
                 break;
                 
             case 3:
                 const username = document.getElementById('username').value.trim();
-                const password = document.getElementById('password').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
+                const password1 = document.getElementById('password1').value;
+                const password2 = document.getElementById('password2').value;
                 const terms = document.getElementById('terms').checked;
                 
-                if (!username || !password || !confirmPassword) {
-                    alert('Please fill in all credential fields.');
-                    return false;
+                if (!username) {
+                    alert('Please enter a username.');
+                    isValid = false;
                 }
                 
-                if (password !== confirmPassword) {
+                if (!password1 || !password2) {
+                    alert('Please fill in both password fields.');
+                    isValid = false;
+                }
+                
+                if (password1 !== password2) {
                     alert('Passwords do not match.');
-                    return false;
+                    isValid = false;
                 }
                 
-                if (!isPasswordStrong(password)) {
-                    alert('Please choose a stronger password.');
-                    return false;
+                if (password1.length < 8) {
+                    alert('Password must be at least 8 characters long.');
+                    isValid = false;
                 }
                 
                 if (!terms) {
                     alert('You must agree to the Terms of Service and Privacy Policy.');
-                    return false;
+                    isValid = false;
+                }
+                
+                // Real-time password match validation
+                const confirmError = document.getElementById('passwordConfirmError');
+                if (password2 && password1 !== password2) {
+                    confirmError.textContent = 'Passwords do not match';
+                    isValid = false;
+                } else {
+                    confirmError.textContent = '';
                 }
                 break;
         }
-        return true;
+        
+        return isValid;
     }
     
     // Password strength checker
@@ -691,10 +802,12 @@
         // Update UI
         Object.keys(requirements).forEach(req => {
             const element = document.getElementById(`req${req.charAt(0).toUpperCase() + req.slice(1)}`);
-            if (requirements[req]) {
-                element.classList.add('valid');
-            } else {
-                element.classList.remove('valid');
+            if (element) {
+                if (requirements[req]) {
+                    element.classList.add('valid');
+                } else {
+                    element.classList.remove('valid');
+                }
             }
         });
         
@@ -703,15 +816,17 @@
         const strengthPercentage = (metRequirements / 5) * 100;
         
         const strengthBar = document.getElementById('passwordStrengthBar');
-        strengthBar.style.width = `${strengthPercentage}%`;
-        
-        // Color based on strength
-        if (strengthPercentage < 40) {
-            strengthBar.style.backgroundColor = '#dc3545'; // Red
-        } else if (strengthPercentage < 70) {
-            strengthBar.style.backgroundColor = '#ffc107'; // Yellow
-        } else {
-            strengthBar.style.backgroundColor = '#28a745'; // Green
+        if (strengthBar) {
+            strengthBar.style.width = `${strengthPercentage}%`;
+            
+            // Color based on strength
+            if (strengthPercentage < 40) {
+                strengthBar.style.backgroundColor = '#dc3545'; // Red
+            } else if (strengthPercentage < 70) {
+                strengthBar.style.backgroundColor = '#ffc107'; // Yellow
+            } else {
+                strengthBar.style.backgroundColor = '#28a745'; // Green
+            }
         }
         
         return metRequirements >= 4; // At least 4 requirements met
@@ -748,15 +863,36 @@
     }
     
     // Real-time password strength check
-    document.getElementById('password')?.addEventListener('input', function() {
+    document.getElementById('password1')?.addEventListener('input', function() {
         isPasswordStrong(this.value);
+        
+        // Also check password match
+        const password2 = document.getElementById('password2').value;
+        const confirmError = document.getElementById('passwordConfirmError');
+        if (password2 && this.value !== password2) {
+            confirmError.textContent = 'Passwords do not match';
+        } else {
+            confirmError.textContent = '';
+        }
+    });
+    
+    // Real-time password confirmation check
+    document.getElementById('password2')?.addEventListener('input', function() {
+        const password1 = document.getElementById('password1').value;
+        const confirmError = document.getElementById('passwordConfirmError');
+        
+        if (this.value && password1 !== this.value) {
+            confirmError.textContent = 'Passwords do not match';
+        } else {
+            confirmError.textContent = '';
+        }
     });
     
     // Form submission
     document.getElementById('registerForm')?.addEventListener('submit', function(e) {
         if (!validateStep(3)) {
             e.preventDefault();
-            alert('Please complete all steps correctly.');
+            alert('Please complete all steps correctly before submitting.');
         }
     });
     
@@ -773,6 +909,36 @@
             }
         }
         this.value = value;
+    });
+    
+    // Auto-generate username suggestion
+    document.getElementById('firstName')?.addEventListener('blur', function() {
+        const usernameField = document.getElementById('username');
+        const emailField = document.getElementById('email');
+        
+        if (!usernameField.value && this.value) {
+            // Suggest username from first name and last initial
+            const firstName = this.value.toLowerCase();
+            const lastName = document.getElementById('lastName').value.toLowerCase();
+            const lastInitial = lastName.charAt(0) || '';
+            
+            let suggestedUsername = firstName + lastInitial;
+            
+            // Remove special characters and spaces
+            suggestedUsername = suggestedUsername.replace(/[^a-z0-9]/g, '');
+            
+            // Add random number if too short
+            if (suggestedUsername.length < 3) {
+                suggestedUsername += Math.floor(Math.random() * 100);
+            }
+            
+            usernameField.value = suggestedUsername;
+        }
+        
+        // Auto-fill email with username if not set
+        if (!emailField.value && usernameField.value) {
+            emailField.value = usernameField.value + '@example.com';
+        }
     });
 </script>
 {% endblock %}
