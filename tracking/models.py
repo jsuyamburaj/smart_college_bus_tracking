@@ -1,5 +1,7 @@
 from django.db import models
 from buses.models import Bus
+# from django.utils import timezone
+
 
 class LocationHistory(models.Model):
     bus = models.ForeignKey(Bus, on_delete=models.CASCADE, related_name='location_history')
