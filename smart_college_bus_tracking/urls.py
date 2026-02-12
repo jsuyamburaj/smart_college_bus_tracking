@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
 from accounts.views import login_view, logout_view, register_view
+from accounts import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,7 +27,11 @@ urlpatterns = [
 
 
     # Dashboard
-    path('dashboard/', TemplateView.as_view(template_name='dashboard.html'), name='dashboard'),
+    path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('driver/dashboard/', views.driver_dashboard, name='driver_dashboard'),
+    path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
+    path('parent/dashboard/', views.parent_dashboard, name='parent_dashboard'),
 ]
 
 if settings.DEBUG:

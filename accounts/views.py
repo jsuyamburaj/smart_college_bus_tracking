@@ -8,12 +8,14 @@ from django.contrib.auth import update_session_auth_hash,authenticate, login
 from .models import User, StudentProfile, DriverProfile
 from .forms import UserRegistrationForm, UserLoginForm
 from django.contrib.auth.forms import  UserCreationForm
+from django.shortcuts import render
+from accounts.models import StudentProfile
 
 
 def login_view(request):
     # If user is already logged in, redirect to dashboard
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        return redirect('dashboard')  # Redirect to the dashboard URL name
     
     if request.method == 'POST':
         form = UserLoginForm(request, data=request.POST)
@@ -41,19 +43,9 @@ def login_view(request):
                 
                 messages.success(request, f'Welcome back, {user.get_full_name() or user.username}!')
                 
-                # Redirect based on user type
-                if hasattr(user, 'user_type'):
-                    if user.user_type == 'admin':
-                        return redirect('admin_dashboard')
-                    elif user.user_type == 'driver':
-                        return redirect('driver_dashboard')
-                    elif user.user_type == 'student':
-                        return redirect('student_dashboard')
-                    elif user.user_type == 'parent':
-                        return redirect('parent_dashboard')
-                
-                # Default redirect
+                # ✅ FIX: Redirect to the main dashboard view which handles user types
                 return redirect('dashboard')
+                
             else:
                 messages.error(request, 'Invalid username or password.')
         else:
@@ -66,6 +58,7 @@ def login_view(request):
     
     return render(request, 'accounts/login.html', {'form': form})
 
+    
 def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
@@ -260,5 +253,25 @@ def update_notifications(request):
 
 @login_required
 def student_schedule(request):
-    return render(request, 'accounts/student/schedule.html')
+    return render(request, 'student/schedule.html')
 
+def admin_dashboard(request):
+    return render(request, 'admin/dashboard.html')
+
+def  driver_dashboard(request):
+    return render(request, 'driver/dashboard.html')
+
+def student_dashboard(request):
+    try:
+        student = request.user.student_profile
+    except:
+        return render(request, "student/dashboard.html", {
+            "error": "Student profile not found"
+        })
+
+    return render(request, "student/dashboard.html", {
+        "student": student
+    })
+
+def parent_dashboard(request):
+    return render(request, 'parent/dashboard.html')

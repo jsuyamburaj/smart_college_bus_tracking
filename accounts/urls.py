@@ -12,9 +12,4 @@ urlpatterns = [
     path('notifications/update/', views.update_notifications, name='update_notifications'),
     path('profile/upload-photo/', views.upload_photo, name='upload_photo'),
     path('student/schedule/', views.student_schedule, name='student_schedule'),
-    
-    
-
-
-
 ]
