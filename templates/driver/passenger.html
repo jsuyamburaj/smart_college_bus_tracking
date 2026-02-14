@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Passenger List{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-users text-primary"></i> Passenger List</h2>
+            <p class="text-muted">Bus #{{ bus_id }} - Today's Passengers</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-list me-2"></i>Registered Passengers</h4>
+                </div>
+                <div class="card-body">
+                    {% if passengers %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Photo</th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Department</th>
+                                    <th>Emergency Contact</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for passenger in passengers %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        {% if passenger.photo %}
+                                        <img src="{{ passenger.photo.url }}" alt="{{ passenger.user.get_full_name }}" 
+                                             style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                                        {% else %}
+                                        <div style="width: 40px; height: 40px; border-radius: 50%; background-color: #6c757d; 
+                                                    display: flex; align-items: center; justify-content: center; color: white;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ passenger.user.get_full_name }}</td>
+                                    <td>{{ passenger.phone|default:"N/A" }}</td>
+                                    <td>{{ passenger.department|default:"N/A" }}</td>
+                                    <td>
+                                        {% if passenger.emergency_name %}
+                                        {{ passenger.emergency_name }}<br>
+                                        <small>{{ passenger.emergency_phone }}</small>
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">On Board</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> No passengers assigned to this bus.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-secondary" onclick="window.close()">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

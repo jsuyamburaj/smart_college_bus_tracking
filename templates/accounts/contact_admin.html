@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Contact Admin - Driver Support{% endblock %}
+
+{% block extra_css %}
+<style>
+    .contact-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .contact-header {
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        color: white;
+        padding: 30px;
+        border-radius: 20px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .contact-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 12px;
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #4361ee;
+        box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+    }
+    
+    .form-control.is-invalid {
+        border-color: #f72585;
+    }
+    
+    .btn-submit {
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s;
+        width: 100%;
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(67, 97, 238, 0.3);
+        color: white;
+    }
+    
+    .btn-submit i {
+        margin-right: 10px;
+    }
+    
+    .info-box {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 5px solid #4361ee;
+    }
+    
+    .info-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: white;
+        border-radius: 10px;
+    }
+    
+    .info-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        margin-right: 15px;
+    }
+    
+    .quick-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+    
+    .quick-action-btn {
+        flex: 1;
+        min-width: 120px;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px 10px;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .quick-action-btn:hover {
+        border-color: #4361ee;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(67, 97, 238, 0.1);
+    }
+    
+    .quick-action-btn i {
+        font-size: 24px;
+        color: #4361ee;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .response-time {
+        background: #e8f4fd;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .response-time i {
+        font-size: 30px;
+        color: #4361ee;
+        margin-right: 15px;
+    }
+    
+    .emergency-contact {
+        background: linear-gradient(135deg, #f72585, #b5179e);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-top: 20px;
+        text-align: center;
+    }
+    
+    .emergency-contact a {
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .emergency-contact i {
+        margin-right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="contact-container">
+    <!-- Header -->
+    <div class="contact-header">
+        <i class="fas fa-headset fa-3x mb-3"></i>
+        <h1 class="display-5 fw-bold">Contact Administrator</h1>
+        <p class="lead mb-0">Need help? Our support team is here for you 24/7</p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show animate__animated animate__fadeIn" role="alert">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Main Contact Form -->
+        <div class="col-lg-8">
+            <div class="contact-card">
+                <h3 class="fw-bold mb-4">
+                    <i class="fas fa-paper-plane text-primary me-2"></i>
+                    Send Message to Admin
+                </h3>
+
+                <form method="post" action="{% url 'contact_admin' %}" id="contactForm">
+                    {% csrf_token %}
+                    
+                    <!-- Issue Type -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-tag me-1"></i>Issue Type
+                        </label>
+                        <select class="form-select" name="issue_type" id="issueType" required>
+                            <option value="">Select issue type...</option>
+                            <option value="technical">🔧 Technical Issue</option>
+                            <option value="bus">🚌 Bus Related</option>
+                            <option value="route">🗺️ Route Problem</option>
+                            <option value="schedule">⏰ Schedule Change</option>
+                            <option value="emergency">🚨 Emergency</option>
+                            <option value="other">📝 Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Subject -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-heading me-1"></i>Subject
+                        </label>
+                        <input type="text" class="form-control" name="subject" 
+                               placeholder="Brief summary of your issue" required maxlength="200">
+                        <small class="text-muted">Maximum 200 characters</small>
+                    </div>
+
+                    <!-- Message -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-comment me-1"></i>Message
+                        </label>
+                        <textarea class="form-control" name="message" rows="6" 
+                                  placeholder="Please describe your issue in detail..." required></textarea>
+                        <small class="text-muted">Include any relevant details that will help us assist you better</small>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions mb-4">
+                        <div class="quick-action-btn" onclick="setIssue('bus')">
+                            <i class="fas fa-bus"></i>
+                            <small>Bus Issue</small>
+                        </div>
+                        <div class="quick-action-btn" onclick="setIssue('route')">
+                            <i class="fas fa-route"></i>
+                            <small>Route</small>
+                        </div>
+                        <div class="quick-action-btn" onclick="setIssue('schedule')">
+                            <i class="fas fa-clock"></i>
+                            <small>Schedule</small>
+                        </div>
+                        <div class="quick-action-btn" onclick="setIssue('technical')">
+                            <i class="fas fa-mobile-alt"></i>
+                            <small>Technical</small>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-paper-plane"></i>
+                        Send Message to Administrator
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Driver Info -->
+            <div class="contact-card">
+                <h4 class="fw-bold mb-3">
+                    <i class="fas fa-user-circle text-primary me-2"></i>
+                    Your Information
+                </h4>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Driver Name</small>
+                        <div class="fw-bold">{{ user.get_full_name }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Email</small>
+                        <div class="fw-bold">{{ user.email|default:"Not provided" }}</div>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Phone</small>
+                        <div class="fw-bold">{{ user.phone_number|default:"Not provided" }}</div>
+                    </div>
+                </div>
+                
+                {% if bus_info %}
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-bus"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Assigned Bus</small>
+                        <div class="fw-bold">{{ bus_info.bus_number }} ({{ bus_info.bus_type }})</div>
+                        <span class="badge bg-success">{{ bus_info.status }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Response Time Info -->
+            <div class="contact-card">
+                <div class="response-time">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <strong>Average Response Time</strong><br>
+                        <span class="text-muted">Within 2 hours during working hours</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Contact -->
+            <div class="emergency-contact">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h5>Emergency?</h5>
+                <p class="mb-3">For immediate assistance, call:</p>
+                <a href="tel:+1234567890">
+                    <i class="fas fa-phone-alt"></i> +1 (234) 567-890
+                </a>
+                <hr class="my-3 bg-white opacity-25">
+                <small>Available 24/7 for emergencies</small>
+            </div>
+
+            <!-- View My Issues Link -->
+            <div class="text-center mt-3">
+                <a href="{% url 'my_issues' %}" class="text-decoration-none">
+                    <i class="fas fa-history me-1"></i>
+                    View my previous issues
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Quick action buttons
+    function setIssue(type) {
+        const select = document.getElementById('issueType');
+        const subject = document.querySelector('input[name="subject"]');
+        
+        const issues = {
+            'bus': { type: 'bus', subject: 'Issue with assigned bus' },
+            'route': { type: 'route', subject: 'Route change request' },
+            'schedule': { type: 'schedule', subject: 'Schedule adjustment needed' },
+            'technical': { type: 'technical', subject: 'Technical issue with app' }
+        };
+        
+        if (issues[type]) {
+            select.value = issues[type].type;
+            subject.value = issues[type].subject;
+            subject.focus();
+        }
+    }
+
+    // Form validation
+    document.getElementById('contactForm').addEventListener('submit', function(e) {
+        const issueType = document.getElementById('issueType').value;
+        const subject = document.querySelector('input[name="subject"]').value.trim();
+        const message = document.querySelector('textarea[name="message"]').value.trim();
+        
+        if (!issueType || !subject || !message) {
+            e.preventDefault();
+            alert('Please fill in all fields');
+            return;
+        }
+        
+        if (subject.length < 5) {
+            e.preventDefault();
+            alert('Subject must be at least 5 characters long');
+            return;
+        }
+        
+        if (message.length < 10) {
+            e.preventDefault();
+            alert('Message must be at least 10 characters long');
+            return;
+        }
+    });
+
+    // Character counter for message
+    document.querySelector('textarea[name="message"]').addEventListener('input', function() {
+        const maxLength = 1000;
+        const currentLength = this.value.length;
+        const remaining = maxLength - currentLength;
+        
+        if (remaining < 0) {
+            this.value = this.value.substring(0, maxLength);
+        }
+    });
+</script>
+{% endblock %}

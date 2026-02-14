@@ -1,305 +1,848 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Driver Dashboard{% endblock %}
+{% block title %}Driver Dashboard - Smart College Bus Tracking{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
+    :root {
+        --primary-color: #4361ee;
+        --secondary-color: #3f37c9;
+        --success-color: #4cc9f0;
+        --danger-color: #f72585;
+        --warning-color: #f8961e;
+        --info-color: #4895ef;
+        --dark-color: #3a0ca3;
+    }
+
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+        color: white;
+        padding: 30px 0;
+        margin-bottom: 30px;
+        border-radius: 0 0 30px 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
     .driver-card {
-        border-radius: 15px;
+        border-radius: 20px;
         border: none;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        height: 100%;
+        overflow: hidden;
+        position: relative;
     }
+
+    .driver-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+    }
+
     .driver-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.12);
     }
+
+    .driver-card .card-body {
+        padding: 25px;
+    }
+
+    .card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(76, 201, 240, 0.1));
+        color: var(--primary-color);
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+    }
+
+    .bg-gradient-success {
+        background: linear-gradient(135deg, #4cc9f0, #4895ef);
+    }
+
+    .bg-gradient-warning {
+        background: linear-gradient(135deg, #f8961e, #f3722c);
+    }
+
+    .bg-gradient-danger {
+        background: linear-gradient(135deg, #f72585, #b5179e);
+    }
+
+    .text-gradient {
+        background: linear-gradient(135deg, var(--primary-color), var(--success-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
     #driverMap {
         height: 500px;
-        border-radius: 10px;
+        border-radius: 20px;
         z-index: 1;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
+
     .speedometer {
-        width: 150px;
-        height: 150px;
+        width: 160px;
+        height: 160px;
+        margin: 20px auto;
         position: relative;
-        margin: 0 auto;
+        background: conic-gradient(from 0deg, 
+            var(--success-color) 0deg, 
+            #4cc9f0 120deg, 
+            #f8961e 240deg, 
+            #f72585 360deg);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: rotateIn 1s ease;
     }
+
+    .speedometer::before {
+        content: '';
+        position: absolute;
+        width: 140px;
+        height: 140px;
+        background: white;
+        border-radius: 50%;
+    }
+
     .speed-value {
-        font-size: 2.5rem;
+        position: relative;
+        z-index: 2;
+        font-size: 3rem;
         font-weight: bold;
-        color: #333;
+        background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
     }
+
+    .speed-unit {
+        position: relative;
+        z-index: 2;
+        font-size: 1rem;
+        color: #6c757d;
+        margin-top: -10px;
+    }
+
+    @keyframes rotateIn {
+        from {
+            transform: rotate(-180deg) scale(0);
+            opacity: 0;
+        }
+        to {
+            transform: rotate(0) scale(1);
+            opacity: 1;
+        }
+    }
+
     .btn-location {
         position: absolute;
-        bottom: 20px;
-        right: 20px;
+        bottom: 30px;
+        right: 30px;
         z-index: 1000;
+        border-radius: 50px;
+        padding: 12px 25px;
+        box-shadow: 0 5px 20px rgba(247, 37, 133, 0.3);
+        border: none;
+        background: linear-gradient(135deg, var(--danger-color), #b5179e);
+        color: white;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .btn-location:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(247, 37, 133, 0.4);
+        color: white;
+    }
+
+    .btn-location i {
+        margin-right: 8px;
+    }
+
+    .status-badge {
+        padding: 8px 15px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .trip-controls {
+        display: flex;
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .btn-start {
+        background: linear-gradient(135deg, #4cc9f0, #4895ef);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 15px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s;
+        flex: 1;
+    }
+
+    .btn-start:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(76, 201, 240, 0.4);
+    }
+
+    .btn-start:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-stop {
+        background: linear-gradient(135deg, #f72585, #b5179e);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 15px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s;
+        flex: 1;
+    }
+
+    .btn-stop:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(247, 37, 133, 0.4);
+    }
+
+    .btn-stop:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .sharing-status {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-radius: 15px;
+        margin: 20px 0;
+    }
+
+    .sharing-active {
+        background: rgba(76, 201, 240, 0.1);
+        border-left: 5px solid #4cc9f0;
+    }
+
+    .sharing-inactive {
+        background: rgba(247, 37, 133, 0.1);
+        border-left: 5px solid #f72585;
+    }
+
+    .bus-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .info-item {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .info-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+
+    .info-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .stop-card {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-radius: 15px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .stop-name {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: var(--dark-color);
+    }
+
+    .eta-display {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--primary-color);
+        text-align: center;
+        padding: 15px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    .live-badge {
+        animation: pulse 1.5s infinite;
+        background: var(--danger-color);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.6;
+        }
+        100% {
+            opacity: 1;
+        }
+    }
+
+    .next-stop-info {
+        background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .distance-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 8px 15px;
+        border-radius: 50px;
+        font-size: 1rem;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2><i class="fas fa-tachometer-alt"></i> Driver Dashboard</h2>
-        <p class="text-muted">Welcome, {{ driver.user.get_full_name }}</p>
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <div class="container-fluid px-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-5 fw-bold mb-2">
+                    <i class="fas fa-tachometer-alt me-3"></i>Driver Dashboard
+                </h1>
+                <p class="lead mb-0 opacity-75">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    Welcome back, <strong>{{ driver.user.get_full_name|default:user.get_full_name }}</strong>!
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="status-badge bg-white text-dark">
+                    <i class="fas fa-clock me-2"></i>
+                    {% now "l, F j, Y" %}
+                </span>
+            </div>
+        </div>
     </div>
 </div>
 
-{% if error %}
-<div class="alert alert-danger">
-    {{ error }}
-</div>
-{% endif %}
+<div class="container-fluid px-4">
+    <!-- Error Messages -->
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Error:</strong> {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
 
-{% if bus %}
-<div class="row">
-    <!-- Bus Status Card -->
-    <div class="col-md-4 mb-4">
-        <div class="card driver-card bg-primary text-white">
-            <div class="card-body">
-                <h4><i class="fas fa-bus"></i> Bus Status</h4>
-                <div class="mt-4">
-                    <p><strong>Bus Number:</strong> {{ bus.bus_number }}</p>
-                    <p><strong>Registration:</strong> {{ bus.registration_number }}</p>
-                    <p><strong>Type:</strong> {{ bus.get_bus_type_display }}</p>
-                    <p><strong>Capacity:</strong> {{ bus.capacity }} seats</p>
-                    <p>
-                        <strong>Status:</strong> 
-                        <span class="badge bg-{% if bus.status == 'active' %}success{% else %}warning{% endif %}">
-                            {{ bus.get_status_display }}
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if bus %}
+    <!-- Trip Status and Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card driver-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-bold mb-0">
+                            <i class="fas fa-play-circle text-success me-2"></i>Trip Control
+                        </h4>
+                        <span class="live-badge" id="liveBadge" style="display: {% if is_sharing %}inline-block{% else %}none{% endif %};">
+                            <i class="fas fa-broadcast-tower me-1"></i> LIVE
                         </span>
-                    </p>
+                    </div>
+
+                    <!-- Sharing Status -->
+                    <div class="sharing-status {% if is_sharing %}sharing-active{% else %}sharing-inactive{% endif %}" id="sharingStatus">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-{% if is_sharing %}satellite-dish{% else %}location-slash{% endif %} fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1">
+                                    {% if is_sharing %}
+                                        <span class="text-success">📍 Location Sharing Active</span>
+                                    {% else %}
+                                        <span class="text-danger">📍 Location Sharing Inactive</span>
+                                    {% endif %}
+                                </h5>
+                                <p class="mb-0 small">
+                                    {% if is_sharing %}
+                                        Your location is being broadcast to parents and students every 10 seconds
+                                    {% else %}
+                                        Click "Start Trip" to begin sharing your location
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="trip-controls">
+                        <button class="btn-start" onclick="startTrip()" {% if is_sharing %}disabled{% endif %}>
+                            <i class="fas fa-play-circle me-2"></i>
+                            Start Trip
+                        </button>
+                        <button class="btn-stop" onclick="stopTrip()" {% if not is_sharing %}disabled{% endif %}>
+                            <i class="fas fa-stop-circle me-2"></i>
+                            Stop Trip
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Trip Information -->
-    <div class="col-md-4 mb-4">
-        <div class="card driver-card bg-info text-white">
-            <div class="card-body">
-                <h4><i class="fas fa-route"></i> Current Trip</h4>
-                <div class="mt-4">
-                    {% if schedule %}
-                    <p><strong>Route:</strong> {{ schedule.route.name }}</p>
-                    <p><strong>Departure:</strong> {{ schedule.departure_time }}</p>
-                    <p><strong>Arrival:</strong> {{ schedule.arrival_time }}</p>
-                    <p><strong>Next Stop:</strong> 
-                        {% if stops %}
-                            {{ stops.0.name }}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </p>
-                    <p><strong>Passengers:</strong> {{ bus.students.count }}</p>
+    <!-- Bus Information Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card driver-card">
+                <div class="card-body">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fas fa-bus text-primary me-2"></i>Bus Information
+                    </h4>
+                    
+                    <div class="bus-info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Bus Number</div>
+                            <div class="info-value">{{ bus.bus_number }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Driver Name</div>
+                            <div class="info-value">{{ driver.user.get_full_name }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Registration</div>
+                            <div class="info-value">{{ bus.registration_number }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Capacity</div>
+                            <div class="info-value">{{ bus.capacity }} seats</div>
+                        </div>
+                    </div>
+
+                    {% if driver.photo %}
+                    <div class="text-center mt-3">
+                        <img src="{{ driver.photo.url }}" alt="Driver" class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card driver-card">
+                <div class="card-body">
+                    <h4 class="fw-bold mb-4">
+                        <i class="fas fa-map-marker-alt text-danger me-2"></i>Current Location
+                    </h4>
+                    
+                    <div class="speedometer">
+                        <div class="speed-value" id="currentSpeed">
+                            {{ current_location.speed|default:"0"|floatformat:0 }}
+                        </div>
+                    </div>
+                    <div class="speed-unit mb-3">km/h</div>
+                    
+                    {% if current_location %}
+                    <div class="text-center">
+                        <p class="mb-1">
+                            <i class="fas fa-map-pin me-1"></i>
+                            Lat: {{ current_location.latitude|floatformat:6 }}
+                        </p>
+                        <p class="mb-1">
+                            <i class="fas fa-map-pin me-1"></i>
+                            Long: {{ current_location.longitude|floatformat:6 }}
+                        </p>
+                        <small class="text-muted">
+                            <i class="far fa-clock me-1"></i>
+                            Updated: <span id="lastUpdateTime">{{ current_location.timestamp|time:"h:i:s A" }}</span>
+                        </small>
+                    </div>
                     {% else %}
-                    <p class="mt-3">No active schedule for today.</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Location not available
+                    </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Speed & Location -->
-    <div class="col-md-4 mb-4">
-        <div class="card driver-card bg-success text-white">
-            <div class="card-body text-center">
-                <h4><i class="fas fa-tachometer-alt"></i> Current Speed</h4>
-                <div class="speedometer mt-3">
-                    <div class="speed-value" id="currentSpeed">
-                        {{ bus.current_speed|floatformat:0 }}
+    <!-- Current Stop and Next Stop Row -->
+    <div class="row mb-4">
+        {% if current_stop %}
+        <div class="col-md-6">
+            <div class="card driver-card">
+                <div class="card-body">
+                    <h4 class="fw-bold mb-3">
+                        <i class="fas fa-flag-checkered text-success me-2"></i>Current Stop
+                    </h4>
+                    
+                    <div class="stop-card">
+                        <div class="stop-name mb-2">{{ current_stop.name }}</div>
+                        <p class="mb-2">
+                            <i class="fas fa-clock me-2"></i>
+                            Arrived: {{ current_stop.arrival_time|time:"h:i A" }}
+                        </p>
+                        <div>
+                            {% if current_stop.is_pickup_point %}
+                            <span class="badge bg-success me-2">Pickup Point</span>
+                            {% endif %}
+                            {% if current_stop.is_drop_point %}
+                            <span class="badge bg-warning">Drop Point</span>
+                            {% endif %}
+                        </div>
                     </div>
-                    <small>km/h</small>
                 </div>
-                
-                {% if current_location %}
-                <div class="mt-4">
-                    <p><i class="fas fa-map-marker-alt"></i> Current Location</p>
-                    <small>
-                        Lat: {{ current_location.latitude|floatformat:6 }}<br>
-                        Lng: {{ current_location.longitude|floatformat:6 }}
-                    </small>
-                </div>
-                {% endif %}
             </div>
         </div>
-    </div>
-</div>
+        {% endif %}
 
-<!-- Map Section -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card driver-card">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="fas fa-map"></i> Navigation Map</h4>
-            </div>
-            <div class="card-body position-relative">
-                <div id="driverMap"></div>
-                <button class="btn btn-danger btn-location" onclick="getCurrentLocation()">
-                    <i class="fas fa-crosshairs"></i> Update Location
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Stops List -->
-{% if stops %}
-<div class="row">
-    <div class="col-12">
-        <div class="card driver-card">
-            <div class="card-header bg-secondary text-white">
-                <h4 class="mb-0"><i class="fas fa-map-marker-alt"></i> Route Stops</h4>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Stop Name</th>
-                                <th>Estimated Time</th>
-                                <th>Type</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for stop in stops %}
-                            <tr>
-                                <td>{{ stop.sequence }}</td>
-                                <td>{{ stop.name }}</td>
-                                <td>{{ stop.estimated_arrival_time }}</td>
-                                <td>
-                                    {% if stop.is_pickup_point and stop.is_drop_point %}
-                                        <span class="badge bg-info">Pickup/Drop</span>
-                                    {% elif stop.is_pickup_point %}
-                                        <span class="badge bg-success">Pickup</span>
-                                    {% elif stop.is_drop_point %}
-                                        <span class="badge bg-warning">Drop</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary" 
-                                            onclick="navigateToStop({{ stop.latitude }}, {{ stop.longitude }})">
-                                        <i class="fas fa-directions"></i> Navigate
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        {% if next_stop %}
+        <div class="col-md-6">
+            <div class="card driver-card">
+                <div class="card-body">
+                    <h4 class="fw-bold mb-3">
+                        <i class="fas fa-arrow-right text-info me-2"></i>Next Stop
+                    </h4>
+                    
+                    <div class="next-stop-info">
+                        <div class="stop-name text-white mb-3">{{ next_stop.name }}</div>
+                        
+                        <div class="eta-display bg-white mb-3" id="eta">
+                            {{ eta|default:"--" }}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="distance-badge">
+                                <i class="fas fa-road me-2"></i>
+                                Distance: <span id="distance">{{ distance|default:"--" }}</span>
+                            </span>
+                            <span class="distance-badge">
+                                <i class="fas fa-clock me-2"></i>
+                                Est. Arrival: <span id="eta">{{ next_stop.estimated_arrival_time|time:"h:i A" }}</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
-</div>
-{% endif %}
 
-<!-- Control Panel -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card driver-card">
-            <div class="card-header bg-dark text-white">
-                <h4 class="mb-0"><i class="fas fa-cogs"></i> Control Panel</h4>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 mb-2">
-                        <button class="btn btn-success w-100" onclick="startTrip()">
-                            <i class="fas fa-play"></i> Start Trip
-                        </button>
+    <!-- Map Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card driver-card">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0 fw-bold">
+                            <i class="fas fa-map-marked-alt text-primary me-2"></i>
+                            Live Navigation Map
+                        </h4>
+                        <div>
+                            <span class="badge bg-success me-2" id="routeBadge">
+                                <i class="fas fa-circle me-1"></i> Route
+                            </span>
+                            <span class="badge bg-danger" id="busBadge">
+                                <i class="fas fa-location-dot me-1"></i> Your Bus
+                            </span>
+                            <span class="badge bg-warning ms-2" id="nextStopBadge">
+                                <i class="fas fa-flag me-1"></i> Next Stop
+                            </span>
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-2">
-                        <button class="btn btn-danger w-100" onclick="endTrip()">
-                            <i class="fas fa-stop"></i> End Trip
-                        </button>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <button class="btn btn-warning w-100" onclick="reportIssue()">
-                            <i class="fas fa-exclamation-triangle"></i> Report Issue
-                        </button>
-                    </div>
-                    <div class="col-md-3 mb-2">
-                        <button class="btn btn-info w-100" onclick="openPassengerList()">
-                            <i class="fas fa-users"></i> Passengers
-                        </button>
+                </div>
+                <div class="card-body p-4 position-relative">
+                    <div id="driverMap"></div>
+                    <button class="btn btn-location" onclick="getCurrentLocation()">
+                        <i class="fas fa-crosshairs"></i>
+                        Center Map
+                    </button>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3 px-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="far fa-clock me-1"></i>
+                            Last update: <span id="mapLastUpdate">{% now "h:i:s A" %}</span>
+                        </small>
+                        <small class="text-muted">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            Auto-updates every 10 seconds
+                        </small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Stops List -->
+    {% if stops %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card driver-card">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h4 class="mb-0 fw-bold">
+                        <i class="fas fa-map-pin text-primary me-2"></i>
+                        Route Stops ({{ stops|length }})
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Stop Name</th>
+                                    <th>Estimated Time</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stop in stops %}
+                                <tr class="{% if stop == current_stop %}table-success{% elif stop == next_stop %}table-info{% endif %}">
+                                    <td>
+                                        <span class="badge bg-primary rounded-circle p-2">{{ stop.sequence }}</span>
+                                    </td>
+                                    <td class="fw-bold">{{ stop.name }}</td>
+                                    <td>{{ stop.estimated_arrival_time|time:"h:i A" }}</td>
+                                    <td>
+                                        {% if stop.is_pickup_point and stop.is_drop_point %}
+                                            <span class="badge bg-info">Pickup & Drop</span>
+                                        {% elif stop.is_pickup_point %}
+                                            <span class="badge bg-success">Pickup</span>
+                                        {% elif stop.is_drop_point %}
+                                            <span class="badge bg-warning">Drop</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if stop == current_stop %}
+                                            <span class="badge bg-success">Current Stop</span>
+                                        {% elif stop == next_stop %}
+                                            <span class="badge bg-info">Next Stop</span>
+                                        {% elif forloop.counter0 < current_stop.sequence|default:999 %}
+                                            <span class="badge bg-secondary">Completed</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">Upcoming</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" 
+                                                onclick="navigateToStop({{ stop.latitude }}, {{ stop.longitude }}, '{{ stop.name }}')">
+                                            <i class="fas fa-location-arrow me-1"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Additional Control Buttons -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card driver-card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-primary w-100 py-3" onclick="reportIssue()">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Report Issue
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-success w-100 py-3" onclick="openPassengerList()">
+                                <i class="fas fa-users me-2"></i>
+                                View Passengers
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-info w-100 py-3" onclick="refreshData()">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                Refresh Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No Bus Assigned Message -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card driver-card border-0">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-bus-slash fa-5x text-muted"></i>
+                    </div>
+                    <h3 class="fw-bold mb-3">No Bus Assigned</h3>
+                    <p class="text-muted mb-4">You haven't been assigned to any bus yet. Please contact the administrator.</p>
+                    <a href="#" class="btn btn-primary rounded-pill px-4">
+                        <i class="fas fa-envelope me-2"></i>Contact Admin
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
-{% else %}
-<div class="alert alert-warning">
-    <h4><i class="fas fa-exclamation-triangle"></i> No Bus Assigned</h4>
-    <p>You haven't been assigned to any bus yet. Please contact the administrator.</p>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="{% static 'js/driver_gps.js' %}"></script>
 <script>
     // Global variables
     let map;
     let busMarker;
+    let nextStopMarker;
     let routeLayer;
-    let currentLat = {% if current_location %}{{ current_location.latitude }}{% else %}0{% endif %};
-    let currentLng = {% if current_location %}{{ current_location.longitude }}{% else %}0{% endif %};
-    let busId = {% if bus %}{{ bus.id }}{% else %}0{% endif %};
-    
+    let stopMarkers = [];
+    let watchId = null;
+    let sharingActive = {% if is_sharing %}true{% else %}false{% endif %};
+    let currentLat = {% if current_location %}{{ current_location.latitude }}{% else %}null{% endif %};
+    let currentLng = {% if current_location %}{{ current_location.longitude }}{% else %}null{% endif %};
+    let busId = {% if bus %}{{ bus.id }}{% else %}null{% endif %};
+    let updateInterval = null;
+
     // Initialize map
     function initMap() {
-        if (currentLat !== 0 && currentLng !== 0) {
-            map = L.map('driverMap').setView([currentLat, currentLng], 15);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-            
-            // Add bus marker
-            const busIcon = L.icon({
-                iconUrl: '{% static "images/bus-driver.png" %}',
-                iconSize: [50, 50],
-                iconAnchor: [25, 50]
-            });
-            
-            busMarker = L.marker([currentLat, currentLng], {
-                icon: busIcon,
-                draggable: false
-            }).addTo(map);
-            
-            busMarker.bindPopup(`
-                <strong>{{ bus.bus_number }}</strong><br>
-                Driver: {{ driver.user.get_full_name }}<br>
-                Status: {{ bus.get_status_display }}
-            `).openPopup();
-            
-            // Add route stops if available
-            {% if stops %}
-            const stopIcon = L.icon({
-                iconUrl: '{% static "images/stop-marker.png" %}',
-                iconSize: [35, 35],
-                iconAnchor: [17, 35]
-            });
-            
+        // Default center (if no location available)
+        let centerLat = currentLat || 28.6139;
+        let centerLng = currentLng || 77.2090;
+        
+        map = L.map('driverMap').setView([centerLat, centerLng], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Add bus marker if location available
+        if (currentLat && currentLng) {
+            addBusMarker(currentLat, currentLng);
+        }
+        
+        // Add stop markers
+        {% if stops %}
             {% for stop in stops %}
-            L.marker([{{ stop.latitude }}, {{ stop.longitude }}], {
-                icon: stopIcon
-            }).addTo(map).bindPopup(`
-                <strong>Stop #{{ stop.sequence }}</strong><br>
-                {{ stop.name }}<br>
-                Time: {{ stop.estimated_arrival_time }}
-            `);
+                (function(stop) {
+                    let markerColor = '#4cc9f0';
+                    let markerType = 'Regular';
+                    
+                    {% if stop.is_pickup_point and stop.is_drop_point %}
+                        markerColor = '#4cc9f0';
+                        markerType = 'Pickup & Drop';
+                    {% elif stop.is_pickup_point %}
+                        markerColor = '#4cc9f0';
+                        markerType = 'Pickup';
+                    {% elif stop.is_drop_point %}
+                        markerColor = '#f8961e';
+                        markerType = 'Drop';
+                    {% endif %}
+                    
+                    {% if stop == next_stop %}
+                        markerColor = '#f72585';
+                        markerType = 'NEXT STOP';
+                    {% endif %}
+                    
+                    let marker = L.marker([{{ stop.latitude }}, {{ stop.longitude }}], {
+                        icon: L.divIcon({
+                            className: 'stop-marker',
+                            html: `<div style="background: ${markerColor}; 
+                                          width: 35px; height: 35px; border-radius: 50%; 
+                                          display: flex; align-items: center; justify-content: center;
+                                          border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+                                          color: white; font-weight: bold;
+                                          ${markerType === 'NEXT STOP' ? 'animation: pulse 1.5s infinite;' : ''}">
+                                    {{ stop.sequence }}
+                                 </div>`,
+                            iconSize: [35, 35],
+                            iconAnchor: [17, 17]
+                        })
+                    }).addTo(map).bindPopup(`
+                        <div style="text-align: center;">
+                            <strong>${markerType}</strong><br>
+                            <strong>{{ stop.name }}</strong><br>
+                            <small>Est. {{ stop.estimated_arrival_time|time:"h:i A" }}</small><br>
+                            ${markerType === 'NEXT STOP' ? '<span class="badge bg-danger">NEXT STOP</span>' : ''}
+                        </div>
+                    `);
+                    
+                    stopMarkers.push(marker);
+                    
+                    {% if stop == next_stop %}
+                        nextStopMarker = marker;
+                    {% endif %}
+                })();
             {% endfor %}
             
-            // Draw route line (simplified)
-            {% if stops|length > 1 %}
+            // Draw route line
             const routeCoords = [
                 {% for stop in stops %}
                 [{{ stop.latitude }}, {{ stop.longitude }}]{% if not forloop.last %},{% endif %}
@@ -307,50 +850,191 @@
             ];
             
             routeLayer = L.polyline(routeCoords, {
-                color: 'blue',
-                weight: 3,
-                opacity: 0.7
+                color: '#4361ee',
+                weight: 4,
+                opacity: 0.7,
+                dashArray: sharingActive ? null : '10, 10'
             }).addTo(map);
-            {% endif %}
-            {% endif %}
+        {% endif %}
+        
+        // Start location tracking if sharing is active
+        if (sharingActive) {
+            startLocationTracking();
         }
     }
-    
-    // Get current location from browser
+
+    // Add bus marker
+    function addBusMarker(lat, lng) {
+        if (busMarker) {
+            busMarker.setLatLng([lat, lng]);
+        } else {
+            const busIcon = L.divIcon({
+                className: 'bus-marker',
+                html: `<div style="background: ${sharingActive ? '#f72585' : '#6c757d'}; 
+                              width: 50px; height: 50px; border-radius: 50%; 
+                              display: flex; align-items: center; justify-content: center;
+                              border: 4px solid white; box-shadow: 0 5px 15px rgba(247,37,133,0.4);
+                              animation: ${sharingActive ? 'pulse 1.5s infinite' : 'none'};">
+                        <i class="fas fa-bus" style="color: white; font-size: 24px;"></i>
+                       </div>`,
+                iconSize: [50, 50],
+                iconAnchor: [25, 25]
+            });
+            
+            busMarker = L.marker([lat, lng], { icon: busIcon }).addTo(map);
+            busMarker.bindPopup(`
+                <div style="text-align: center;">
+                    <strong style="color: #f72585;">{{ bus.bus_number }}</strong><br>
+                    <span>Driver: {{ driver.user.get_full_name }}</span><br>
+                    <span class="badge ${sharingActive ? 'bg-success' : 'bg-secondary'}">
+                        ${sharingActive ? '📍 LIVE' : '⚫ OFFLINE'}
+                    </span>
+                </div>
+            `).openPopup();
+        }
+    }
+
+    // Start location tracking
+    function startLocationTracking() {
+        // Get location immediately
+        getCurrentLocation();
+        
+        // Set interval to update every 10 seconds
+        if (updateInterval) {
+            clearInterval(updateInterval);
+        }
+        updateInterval = setInterval(getCurrentLocation, 10000);
+        
+        sharingActive = true;
+        updateUIForSharing(true);
+    }
+
+    // Stop location tracking
+    function stopLocationTracking() {
+        if (updateInterval) {
+            clearInterval(updateInterval);
+            updateInterval = null;
+        }
+        
+        sharingActive = false;
+        updateUIForSharing(false);
+        
+        // Send stop signal to server
+        fetch(`/api/trips/end/${busId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Trip ended. Location sharing stopped.', 'warning');
+            }
+        });
+    }
+
+    // Update UI based on sharing status
+    function updateUIForSharing(active) {
+        // Update buttons
+        document.querySelector('.btn-start').disabled = active;
+        document.querySelector('.btn-stop').disabled = !active;
+        
+        // Update badges
+        document.getElementById('liveBadge').style.display = active ? 'inline-block' : 'none';
+        
+        // Update status card
+        const statusDiv = document.getElementById('sharingStatus');
+        statusDiv.className = `sharing-status ${active ? 'sharing-active' : 'sharing-inactive'}`;
+        statusDiv.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-${active ? 'satellite-dish' : 'location-slash'} fa-2x"></i>
+                </div>
+                <div>
+                    <h5 class="mb-1">
+                        ${active ? '<span class="text-success">📍 Location Sharing Active</span>' : '<span class="text-danger">📍 Location Sharing Inactive</span>'}
+                    </h5>
+                    <p class="mb-0 small">
+                        ${active ? 'Your location is being broadcast to parents and students every 10 seconds' : 'Click "Start Trip" to begin sharing your location'}
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        // Update marker color and animation
+        if (busMarker) {
+            const busIcon = L.divIcon({
+                className: 'bus-marker',
+                html: `<div style="background: ${active ? '#f72585' : '#6c757d'}; 
+                              width: 50px; height: 50px; border-radius: 50%; 
+                              display: flex; align-items: center; justify-content: center;
+                              border: 4px solid white; box-shadow: 0 5px 15px rgba(247,37,133,0.4);
+                              animation: ${active ? 'pulse 1.5s infinite' : 'none'};">
+                        <i class="fas fa-bus" style="color: white; font-size: 24px;"></i>
+                       </div>`,
+                iconSize: [50, 50],
+                iconAnchor: [25, 25]
+            });
+            busMarker.setIcon(busIcon);
+        }
+    }
+
+    // Get current location
     function getCurrentLocation() {
+        if (!sharingActive) {
+            return;
+        }
+        
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     const speed = position.coords.speed || 0;
+                    const speedKmh = (speed * 3.6).toFixed(0);
                     
                     // Update map
                     if (map) {
                         map.setView([lat, lng], 15);
-                        busMarker.setLatLng([lat, lng]);
+                        addBusMarker(lat, lng);
                     }
                     
                     // Update speed display
-                    document.getElementById('currentSpeed').textContent = Math.round(speed * 3.6); // m/s to km/h
+                    const speedElement = document.getElementById('currentSpeed');
+                    if (speedElement) {
+                        speedElement.textContent = speedKmh;
+                    }
+                    
+                    // Update last update times
+                    const now = new Date();
+                    const timeString = now.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit' 
+                    });
+                    
+                    document.getElementById('lastUpdateTime').textContent = timeString;
+                    document.getElementById('mapLastUpdate').textContent = timeString;
                     
                     // Send to server
-                    updateLocation(lat, lng, speed * 3.6);
+                    updateLocation(lat, lng, speedKmh);
+                    
+                    // Calculate ETA to next stop
+                    calculateETA(lat, lng);
                 },
                 function(error) {
-                    alert('Error getting location: ' + error.message);
+                    console.error('Geolocation error:', error);
                 },
                 {
                     enableHighAccuracy: true,
-                    timeout: 5000,
+                    timeout: 10000,
                     maximumAge: 0
                 }
             );
-        } else {
-            alert('Geolocation is not supported by this browser.');
         }
     }
-    
+
     // Update location on server
     function updateLocation(lat, lng, speed) {
         fetch(`/tracking/update-location/${busId}/`, {
@@ -362,36 +1046,79 @@
             body: JSON.stringify({
                 latitude: lat,
                 longitude: lng,
-                speed: speed
+                speed: parseFloat(speed),
+                sharing: sharingActive
             })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                console.log('Location updated:', data);
-            } else {
-                console.error('Error:', data.error);
+            if (data.next_stop) {
+                updateNextStopInfo(data.next_stop, data.eta, data.distance);
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error updating location:', error);
         });
     }
-    
-    // Navigate to stop
-    function navigateToStop(lat, lng) {
-        if (map) {
-            map.setView([lat, lng], 15);
-            L.popup()
-                .setLatLng([lat, lng])
-                .setContent('Navigation to this stop')
-                .openOn(map);
+
+    // Calculate ETA to next stop
+    function calculateETA(currentLat, currentLng) {
+        {% if next_stop %}
+        const stopLat = {{ next_stop.latitude }};
+        const stopLng = {{ next_stop.longitude }};
+        
+        // Calculate distance using Haversine formula
+        const R = 6371; // Earth's radius in km
+        const dLat = (stopLat - currentLat) * Math.PI / 180;
+        const dLon = (stopLng - currentLng) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(currentLat * Math.PI / 180) * Math.cos(stopLat * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
+        // Get current speed or use average
+        const speedElement = document.getElementById('currentSpeed');
+        const currentSpeed = parseFloat(speedElement.textContent) || 30;
+        const avgSpeed = Math.max(currentSpeed, 20); // Use current speed or minimum 20 km/h
+        
+        const etaMinutes = Math.round((distance / avgSpeed) * 60);
+        
+        // Update display
+        document.getElementById('eta').textContent = etaMinutes + ' min';
+        document.getElementById('distance').textContent = distance.toFixed(1) + ' km';
+        
+        // Calculate estimated arrival time
+        const now = new Date();
+        const arrivalTime = new Date(now.getTime() + etaMinutes * 60000);
+        const arrivalTimeString = arrivalTime.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        
+        // Update arrival time in next stop card
+        const etaElement = document.querySelector('#eta');
+        if (etaElement) {
+            etaElement.innerHTML = `${etaMinutes} min <small class="text-white-50">(${arrivalTimeString})</small>`;
+        }
+        {% endif %}
+    }
+
+    // Update next stop info
+    function updateNextStopInfo(stop, eta, distance) {
+        if (stop) {
+            const etaElement = document.getElementById('eta');
+            const distanceElement = document.getElementById('distance');
+            
+            if (etaElement) etaElement.textContent = eta;
+            if (distanceElement) distanceElement.textContent = distance;
         }
     }
-    
-    // Control functions
+
+    // Start trip
     function startTrip() {
-        if (confirm('Start the trip?')) {
+        if (confirm('Are you sure you want to start the trip? This will begin sharing your location with parents and students.')) {
             fetch(`/api/trips/start/${busId}/`, {
                 method: 'POST',
                 headers: {
@@ -400,29 +1127,45 @@
             })
             .then(response => response.json())
             .then(data => {
-                alert('Trip started!');
-            });
-        }
-    }
-    
-    function endTrip() {
-        if (confirm('End the trip?')) {
-            fetch(`/api/trips/end/${busId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
+                if (data.success) {
+                    startLocationTracking();
+                    showNotification('Trip started successfully!', 'success');
+                } else {
+                    showNotification('Error starting trip: ' + data.error, 'danger');
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                alert('Trip ended!');
+            .catch(error => {
+                showNotification('Network error: ' + error, 'danger');
             });
         }
     }
-    
+
+    // Stop trip
+    function stopTrip() {
+        if (confirm('Are you sure you want to stop the trip? This will stop sharing your location.')) {
+            stopLocationTracking();
+        }
+    }
+
+    // Navigate to stop
+    function navigateToStop(lat, lng, stopName) {
+        if (map) {
+            map.setView([lat, lng], 16);
+            
+            // Highlight the stop marker
+            stopMarkers.forEach(marker => {
+                const popup = marker.getPopup();
+                if (popup && popup.getContent().includes(stopName)) {
+                    marker.openPopup();
+                }
+            });
+        }
+    }
+
+    // Report issue
     function reportIssue() {
-        const issue = prompt('Describe the issue:');
-        if (issue) {
+        const issue = prompt('Please describe the issue in detail:');
+        if (issue && issue.trim() !== '') {
             fetch(`/api/issues/report/`, {
                 method: 'POST',
                 headers: {
@@ -431,21 +1174,55 @@
                 },
                 body: JSON.stringify({
                     bus_id: busId,
-                    issue: issue
+                    issue: issue.trim()
                 })
             })
             .then(response => response.json())
             .then(data => {
-                alert('Issue reported!');
+                if (data.success) {
+                    showNotification('Issue reported successfully! Support will contact you soon.', 'success');
+                } else {
+                    showNotification('Error reporting issue: ' + data.error, 'danger');
+                }
+            })
+            .catch(error => {
+                showNotification('Network error: ' + error, 'danger');
             });
         }
     }
-    
+
+    // Open passenger list
     function openPassengerList() {
-        window.open(`/driver/passengers/${busId}/`, '_blank');
+        const passengerWindow = window.open(`/driver/passengers/${busId}/`, '_blank', 'width=800,height=600');
+        if (!passengerWindow) {
+            showNotification('Please allow pop-ups to view passenger list.', 'warning');
+        }
     }
-    
-    // Utility function to get CSRF token
+
+    // Refresh data
+    function refreshData() {
+        location.reload();
+    }
+
+    // Show notification
+    function showNotification(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+        alertDiv.style.zIndex = '9999';
+        alertDiv.style.minWidth = '300px';
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Get CSRF token
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -460,11 +1237,32 @@
         }
         return cookieValue;
     }
-    
-    // Initialize map when page loads
-    document.addEventListener('DOMContentLoaded', initMap);
-    
-    // Auto-update location every 10 seconds
-    setInterval(getCurrentLocation, 10000);
+
+    // Add pulse animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 20px rgba(247, 37, 133, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(247, 37, 133, 0);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Initialize map on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+        
+        // Get initial location if sharing active
+        if (sharingActive) {
+            setTimeout(getCurrentLocation, 1000);
+        }
+    });
 </script>
 {% endblock %}

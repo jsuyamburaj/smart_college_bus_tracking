@@ -7,31 +7,43 @@ from accounts.views import login_view, logout_view, register_view
 from accounts import views
 
 urlpatterns = [
+    # Admin
     path('admin/', admin.site.urls),
+    
+    # Public Pages
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('about/', TemplateView.as_view(template_name='about.html'), name='about'),
     path('contact/', TemplateView.as_view(template_name='contact.html'), name='contact'),
+    path('contact-admin/', views.contact_admin, name='contact_admin'),
 
-    # Auth URLs
+    # Authentication
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
     path('register/', register_view, name='register'),
-
-    # App URLs
-    path('accounts/', include('accounts.urls')),
-    path('buses/', include('buses.urls')),
-    path('tracking/', include('tracking.urls')),
-    path('api/', include('api.urls')),
-    path('notifications/', include('notifications.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
 
-
-    # Dashboard
+    # Dashboard URLs
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('driver/dashboard/', views.driver_dashboard, name='driver_dashboard'),
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
     path('parent/dashboard/', views.parent_dashboard, name='parent_dashboard'),
+
+    # Driver API Endpoints (NEW)
+    path('tracking/update-location/<int:bus_id>/', views.update_bus_location, name='update_location'),
+    path('api/trips/start/<int:bus_id>/', views.start_trip, name='start_trip'),
+    path('api/trips/end/<int:bus_id>/', views.end_trip, name='end_trip'),
+    path('api/issues/report/', views.report_issue, name='report_issue'),
+    path('driver/passengers/<int:bus_id>/', views.passenger_list, name='passenger_list'),
+    path('contact-admin/', views.contact_admin, name='contact_admin'),
+    path('my-issues/', views.my_issues, name='my_issues'),
+
+    # App Includes
+    path('accounts/', include('accounts.urls')),
+    path('buses/', include('buses.urls')),
+    path('tracking/', include('tracking.urls')),
+    path('api/', include('api.urls')),
+    path('notifications/', include('notifications.urls')),
 ]
 
 if settings.DEBUG:
@@ -44,4 +56,3 @@ if settings.DEBUG:
     urlpatterns += [
         path('__debug__/', include(debug_toolbar.urls)),
     ]
-    

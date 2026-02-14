@@ -1,6 +1,6 @@
 import json
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404 ,redirect
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
@@ -8,6 +8,10 @@ from django.utils import timezone
 from .models import LocationHistory, Trip, TripPoint, GeofenceEvent
 from buses.models import Bus, Stop
 from accounts.models import StudentProfile
+from django.contrib import messages
+from buses.models import Bus
+from accounts.models import DriverProfile
+from tracking.models import Trip  # adjust app name if needed
 import math
 
 @login_required
@@ -61,6 +65,37 @@ def student_dashboard(request):
     
     except StudentProfile.DoesNotExist:
         return render(request, 'student/dashboard.html', {'error': 'Student profile not found'})
+
+@login_required
+def driver_dashboard(request):
+    try:
+        # Ensure user is a driver
+        if request.user.user_type != 'driver':
+            return HttpResponse("Unauthorized Access", status=403)
+
+        driver_profile = request.user.driver_profile
+        bus = driver_profile.assigned_bus
+
+        active_trip = None
+        if bus:
+            active_trip = bus.trips.filter(status='in_progress').first()
+
+        context = {
+            'driver': driver_profile,
+            'bus': bus,
+            'active_trip': active_trip
+        }
+
+        return render(request, 'driver/dashboard.html', context)
+
+    except DriverProfile.DoesNotExist:
+        messages.error(request, "Driver profile not found.")
+        return redirect('login')
+
+    except Exception as e:
+        print("Driver Dashboard Error:", e)
+        return HttpResponse("Internal Server Error", status=500)
+
 
 @login_required
 def track_bus(request, bus_id=None):
@@ -239,4 +274,58 @@ def get_bus_location_history(request, bus_id):
     return JsonResponse({
         'bus_number': bus.bus_number,
         'locations': locations_list
+    })
+
+@login_required
+@require_POST
+def start_trip(request, bus_id):
+    bus = get_object_or_404(Bus, id=bus_id)
+
+    if request.user != bus.driver.user:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    Trip.objects.filter(bus=bus, status='in_progress').update(status='completed')
+
+    trip = Trip.objects.create(
+        bus=bus,
+        start_time=timezone.now(),
+        status='in_progress'
+    )
+
+    return JsonResponse({
+        'success': True,
+        'trip_id': trip.id
+    })
+
+@login_required
+@require_POST
+def stop_trip(request, bus_id):
+    bus = get_object_or_404(Bus, id=bus_id)
+
+    if request.user != bus.driver.user:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    trip = Trip.objects.filter(bus=bus, status='in_progress').first()
+
+    if not trip:
+        return JsonResponse({'error': 'No active trip'}, status=400)
+
+    trip.status = 'completed'
+    trip.end_time = timezone.now()
+    trip.save()
+
+    return JsonResponse({
+        'success': True,
+        'message': 'Trip stopped'
+    })
+
+@login_required
+def get_live_bus_location(request, bus_id):
+    bus = get_object_or_404(Bus, id=bus_id)
+
+    return JsonResponse({
+        'bus_number': bus.bus_number,
+        'latitude': bus.latitude,
+        'longitude': bus.longitude,
+        'speed': bus.current_speed
     })
