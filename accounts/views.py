@@ -14,6 +14,8 @@ from django.core.mail import send_mail
 from django.utils import timezone
 from math import radians, cos, sin, asin, sqrt
 from tracking.models import LocationHistory, Trip, TripPoint
+from buses.models import Schedule,Bus
+from tracking.models import BusLocation,Trip
 import json
 from django.conf import settings
 
@@ -736,7 +738,6 @@ def dashboard_view(request):
 
     # ADMIN DASHBOARD
     if user.user_type == 'admin':
-        # Get statistics for admin dashboard
         total_buses = Bus.objects.count()
         active_buses = Bus.objects.filter(status='active').count()
         total_drivers = DriverProfile.objects.filter(is_active=True).count()
@@ -757,77 +758,67 @@ def dashboard_view(request):
     # DRIVER DASHBOARD
     elif user.user_type == 'driver':
         try:
-            # Get driver profile
             driver_profile = user.driver_profile
-            
-            # Get assigned bus
             bus = driver_profile.assigned_bus
-            
+
             if bus:
-                # Get today's schedule
-                today = timezone.now().date()
+                # ✅ FIXED HERE
+                today_day = timezone.now().strftime('%A')
+
                 schedule = Schedule.objects.filter(
                     bus=bus,
-                    date=today
+                    day=today_day,
+                    is_active=True
                 ).first()
-                
-                # Get route stops if schedule exists
+
                 stops = None
                 current_stop = None
                 next_stop = None
-                
+
                 if schedule and schedule.route:
                     stops = schedule.route.stops.all().order_by('sequence')
-                    
-                    # Determine current and next stop
+
                     if stops.exists():
-                        # Get last reported location to determine current stop
                         last_location = BusLocation.objects.filter(bus=bus).last()
-                        
+
                         if last_location:
-                            # Find nearest stop
-                            from math import radians, cos, sin, asin, sqrt
+
                             def haversine(lat1, lon1, lat2, lon2):
-                                R = 6371  # Earth's radius in km
+                                R = 6371
                                 lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
                                 dlat = lat2 - lat1
                                 dlon = lon2 - lon1
                                 a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
                                 c = 2 * asin(sqrt(a))
                                 return R * c
-                            
+
                             min_distance = float('inf')
+
                             for stop in stops:
                                 distance = haversine(
-                                    last_location.latitude, last_location.longitude,
-                                    stop.latitude, stop.longitude
+                                    last_location.latitude,
+                                    last_location.longitude,
+                                    stop.latitude,
+                                    stop.longitude
                                 )
                                 if distance < min_distance:
                                     min_distance = distance
                                     current_stop = stop
-                            
-                            # Find next stop
+
                             if current_stop:
                                 next_stops = stops.filter(sequence__gt=current_stop.sequence)
-                                if next_stops.exists():
-                                    next_stop = next_stops.first()
-                                else:
-                                    # Loop back to first stop if at end
-                                    next_stop = stops.first()
+                                next_stop = next_stops.first() if next_stops.exists() else stops.first()
                         else:
-                            # No location yet, first stop is current
                             current_stop = stops.first()
                             next_stop = stops.filter(sequence__gt=current_stop.sequence).first()
-                
-                # Get current location
+
                 current_location = BusLocation.objects.filter(bus=bus).last()
-                
-                # Calculate ETA to next stop
+
                 eta = "Calculating..."
                 distance_to_next = "N/A"
-                
+
                 if current_location and next_stop:
-                    from math import radians, cos, sin, asin, sqrt
+
                     def haversine(lat1, lon1, lat2, lon2):
                         R = 6371
                         lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
@@ -836,31 +827,32 @@ def dashboard_view(request):
                         a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
                         c = 2 * asin(sqrt(a))
                         return R * c
-                    
+
                     distance = haversine(
-                        current_location.latitude, current_location.longitude,
-                        next_stop.latitude, next_stop.longitude
+                        current_location.latitude,
+                        current_location.longitude,
+                        next_stop.latitude,
+                        next_stop.longitude
                     )
-                    
+
                     distance_to_next = f"{distance:.1f} km"
-                    
-                    # Assume average speed 30 km/h for ETA
-                    avg_speed = 30  # km/h
+
+                    avg_speed = 30
                     eta_minutes = int((distance / avg_speed) * 60)
+
                     if eta_minutes < 1:
                         eta = "Less than 1 min"
                     elif eta_minutes < 60:
                         eta = f"{eta_minutes} min"
                     else:
                         eta = f"{eta_minutes // 60}h {eta_minutes % 60}m"
-                
-                # Check if trip is active (location sharing on)
+
                 is_sharing = Trip.objects.filter(
                     bus=bus,
                     status='in_progress',
                     end_time__isnull=True
                 ).exists()
-                
+
                 context.update({
                     'driver': driver_profile,
                     'bus': bus,
@@ -875,72 +867,55 @@ def dashboard_view(request):
                 })
             else:
                 context['error'] = 'No bus assigned to you.'
-                
+
         except ObjectDoesNotExist:
             context['error'] = 'Driver profile not found.'
-        
+
         return render(request, 'driver/dashboard.html', context)
 
-    # STUDENT AND PARENT DASHBOARD (SHARED)
+    # STUDENT & PARENT DASHBOARD
     elif user.user_type == 'student' or user.user_type == 'parent':
         try:
-            # For student
             if user.user_type == 'student':
                 profile = user.student_profile
-            # For parent - assuming parent has access to student's info
             else:
-                # You might need to adjust this based on your parent model
-                # For now, get the first child or handle appropriately
-                profile = StudentProfile.objects.filter(
-                    parent=user  # Assuming parent field exists
-                ).first()
-            
+                profile = StudentProfile.objects.filter(parent=user).first()
+
             if profile and profile.assigned_bus:
                 bus = profile.assigned_bus
-                
-                # Get bus current location
+
                 current_location = BusLocation.objects.filter(bus=bus).last()
-                
-                # Get today's schedule
-                today = timezone.now().date()
+
+                # ✅ FIXED HERE ALSO
+                today_day = timezone.now().strftime('%A')
+
                 schedule = Schedule.objects.filter(
                     bus=bus,
-                    date=today
+                    day=today_day,
+                    is_active=True
                 ).first()
-                
-                # Get route stops
+
                 stops = None
                 if schedule and schedule.route:
                     stops = schedule.route.stops.all().order_by('sequence')
-                
-                # Calculate ETA to next stop
-                eta = "Not available"
-                if current_location and stops:
-                    # Find next stop based on bus position
-                    # This is simplified - you might want more sophisticated logic
-                    next_stop = stops.first()
-                    
-                    # Calculate ETA logic here
-                    # ... (similar to driver calculation)
-                    
+
                 context.update({
                     'profile': profile,
                     'bus': bus,
                     'bus_location': current_location,
                     'schedule': schedule,
                     'stops': stops,
-                    'eta': eta,
+                    'eta': "Not available",
                     'user_type': user.user_type,
                 })
             else:
                 context['error'] = 'No bus assigned to you.'
-                
+
         except ObjectDoesNotExist:
             context['error'] = 'Profile not found.'
-        
+
         return render(request, 'student/dashboard.html', context)
 
-    # DEFAULT FALLBACK
     return render(request, 'dashboard.html', context)
 
 @login_required

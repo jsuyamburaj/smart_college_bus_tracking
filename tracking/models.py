@@ -1,5 +1,6 @@
 from django.db import models
 from buses.models import Bus
+from accounts.models import DriverProfile
 # from django.utils import timezone
 
 
@@ -78,7 +79,8 @@ class Trip(models.Model):
         ('cancelled', 'Cancelled'),
         ('delayed', 'Delayed'),
     )
-    
+
+    driver = models.ForeignKey('accounts.DriverProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='trips')    
     bus = models.ForeignKey(Bus, on_delete=models.CASCADE, related_name='trips')
     schedule = models.ForeignKey('buses.Schedule', on_delete=models.SET_NULL, null=True, blank=True)
     start_time = models.DateTimeField()
@@ -114,3 +116,12 @@ class TripPoint(models.Model):
     
     class Meta:
         ordering = ['sequence']
+
+class BusLocation(models.Model):
+    bus = models.ForeignKey(Bus, on_delete=models.CASCADE)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.bus} - {self.latitude}, {self.longitude}"
