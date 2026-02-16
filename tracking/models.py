@@ -1,6 +1,8 @@
 from django.db import models
 from buses.models import Bus
 from accounts.models import DriverProfile
+from django.conf import settings
+from django.utils import timezone
 # from django.utils import timezone
 
 
@@ -125,3 +127,117 @@ class BusLocation(models.Model):
 
     def __str__(self):
         return f"{self.bus} - {self.latitude}, {self.longitude}"
+
+# Add this to tracking/models.py
+
+class Issue(models.Model):
+    """
+    Model for reporting issues (by drivers, students, etc.)
+    """
+    ISSUE_STATUS_CHOICES = (
+        ('reported', 'Reported'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    )
+    
+    ISSUE_PRIORITY_CHOICES = (
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('critical', 'Critical'),
+    )
+    
+    ISSUE_TYPE_CHOICES = (
+        ('mechanical', 'Mechanical Issue'),
+        ('accident', 'Accident'),
+        ('delay', 'Delay'),
+        ('route_deviation', 'Route Deviation'),
+        ('student_issue', 'Student Issue'),
+        ('traffic', 'Traffic'),
+        ('weather', 'Weather'),
+        ('other', 'Other'),
+    )
+    
+    # Basic info
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    issue_type = models.CharField(max_length=20, choices=ISSUE_TYPE_CHOICES)
+    priority = models.CharField(max_length=10, choices=ISSUE_PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=20, choices=ISSUE_STATUS_CHOICES, default='reported')
+    
+    # Related objects
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='reported_issues'
+    )
+    bus = models.ForeignKey('buses.Bus', on_delete=models.SET_NULL, null=True, blank=True)
+    trip = models.ForeignKey('Trip', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Location where issue occurred
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    
+    # Media attachments
+    image = models.ImageField(upload_to='issues/', null=True, blank=True)
+    
+    # Resolution
+    resolution_notes = models.TextField(blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='resolved_issues'
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['priority']),
+            models.Index(fields=['issue_type']),
+            models.Index(fields=['created_at']),
+        ]
+    
+    def __str__(self):
+        return f"Issue #{self.id}: {self.title}"
+    
+    def resolve(self, user, notes):
+        self.status = 'resolved'
+        self.resolution_notes = notes
+        self.resolved_by = user
+        self.resolved_at = timezone.now()
+        self.save()
+        
+        # Send notification
+        from notifications.models import Notification
+        Notification.objects.create(
+            user=self.reported_by,
+            notification_type='system',
+            title='Issue Resolved',
+            message=f'Your issue "{self.title}" has been resolved.',
+            priority='medium'
+        )
+
+class IssueComment(models.Model):
+    """
+    Comments on issues for tracking progress
+    """
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"Comment on Issue #{self.issue.id} by {self.user.username}"
