@@ -13,12 +13,11 @@ from accounts.models import StudentProfile
 from django.core.mail import send_mail
 from django.utils import timezone
 from math import radians, cos, sin, asin, sqrt
-from tracking.models import LocationHistory, Trip, TripPoint
+from tracking.models import LocationHistory, Trip, TripPoint,Issue
 from buses.models import Schedule,Bus
-from tracking.models import BusLocation,Trip
+from tracking.models import BusLocation,Trip,TripPoint
 import json
 from django.conf import settings
-
 
 def login_view(request):
     # If user is already logged in, redirect based on role
@@ -736,15 +735,26 @@ def dashboard_view(request):
         'now': timezone.now(),
     }
 
-    # ADMIN DASHBOARD
+    # -------------------- ADMIN DASHBOARD --------------------
     if user.user_type == 'admin':
+
         total_buses = Bus.objects.count()
         active_buses = Bus.objects.filter(status='active').count()
+
+        # DriverProfile has is_active field
         total_drivers = DriverProfile.objects.filter(is_active=True).count()
-        total_students = StudentProfile.objects.filter(is_active=True).count()
+
+        # FIXED: StudentProfile does NOT have is_active
+        total_students = StudentProfile.objects.filter(
+            user__is_active=True
+        ).count()
+
         active_trips = Trip.objects.filter(status='in_progress').count()
-        recent_issues = Issue.objects.filter(status='reported').order_by('-created_at')[:5]
-        
+
+        recent_issues = Issue.objects.filter(
+            status='reported'
+        ).order_by('-created_at')[:5]
+
         context.update({
             'total_buses': total_buses,
             'active_buses': active_buses,
@@ -753,169 +763,160 @@ def dashboard_view(request):
             'active_trips': active_trips,
             'recent_issues': recent_issues,
         })
+
         return render(request, 'admin/dashboard.html', context)
 
-    # DRIVER DASHBOARD
+    # -------------------- DRIVER DASHBOARD --------------------
     elif user.user_type == 'driver':
+
         try:
             driver_profile = user.driver_profile
             bus = driver_profile.assigned_bus
 
-            if bus:
-                # ✅ FIXED HERE
-                today_day = timezone.now().strftime('%A')
+            if not bus:
+                context['error'] = "No bus assigned to you."
+                return render(request, 'driver/dashboard.html', context)
 
-                schedule = Schedule.objects.filter(
-                    bus=bus,
-                    day=today_day,
-                    is_active=True
-                ).first()
+            today_day = timezone.now().strftime('%A')
 
-                stops = None
-                current_stop = None
-                next_stop = None
+            schedule = Schedule.objects.filter(
+                bus=bus,
+                day=today_day,
+                is_active=True
+            ).first()
 
-                if schedule and schedule.route:
-                    stops = schedule.route.stops.all().order_by('sequence')
+            stops = None
+            current_stop = None
+            next_stop = None
 
-                    if stops.exists():
-                        last_location = BusLocation.objects.filter(bus=bus).last()
+            if schedule and schedule.route:
+                stops = schedule.route.stops.all().order_by('sequence')
 
-                        if last_location:
+            current_location = BusLocation.objects.filter(bus=bus).last()
 
-                            def haversine(lat1, lon1, lat2, lon2):
-                                R = 6371
-                                lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-                                dlat = lat2 - lat1
-                                dlon = lon2 - lon1
-                                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-                                c = 2 * asin(sqrt(a))
-                                return R * c
+            # ---------- Haversine Distance Function ----------
+            def haversine(lat1, lon1, lat2, lon2):
+                R = 6371
+                lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+                dlat = lat2 - lat1
+                dlon = lon2 - lon1
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+                c = 2 * asin(sqrt(a))
+                return R * c
 
-                            min_distance = float('inf')
+            # ---------- Find Current & Next Stop ----------
+            if stops and current_location:
+                min_distance = float('inf')
 
-                            for stop in stops:
-                                distance = haversine(
-                                    last_location.latitude,
-                                    last_location.longitude,
-                                    stop.latitude,
-                                    stop.longitude
-                                )
-                                if distance < min_distance:
-                                    min_distance = distance
-                                    current_stop = stop
-
-                            if current_stop:
-                                next_stops = stops.filter(sequence__gt=current_stop.sequence)
-                                next_stop = next_stops.first() if next_stops.exists() else stops.first()
-                        else:
-                            current_stop = stops.first()
-                            next_stop = stops.filter(sequence__gt=current_stop.sequence).first()
-
-                current_location = BusLocation.objects.filter(bus=bus).last()
-
-                eta = "Calculating..."
-                distance_to_next = "N/A"
-
-                if current_location and next_stop:
-
-                    def haversine(lat1, lon1, lat2, lon2):
-                        R = 6371
-                        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-                        dlat = lat2 - lat1
-                        dlon = lon2 - lon1
-                        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-                        c = 2 * asin(sqrt(a))
-                        return R * c
-
+                for stop in stops:
                     distance = haversine(
                         current_location.latitude,
                         current_location.longitude,
-                        next_stop.latitude,
-                        next_stop.longitude
+                        stop.latitude,
+                        stop.longitude
                     )
+                    if distance < min_distance:
+                        min_distance = distance
+                        current_stop = stop
 
-                    distance_to_next = f"{distance:.1f} km"
+                if current_stop:
+                    next_stop = stops.filter(
+                        sequence__gt=current_stop.sequence
+                    ).first() or stops.first()
 
-                    avg_speed = 30
-                    eta_minutes = int((distance / avg_speed) * 60)
+            eta = "Not available"
+            distance_to_next = "N/A"
 
-                    if eta_minutes < 1:
-                        eta = "Less than 1 min"
-                    elif eta_minutes < 60:
-                        eta = f"{eta_minutes} min"
-                    else:
-                        eta = f"{eta_minutes // 60}h {eta_minutes % 60}m"
+            if current_location and next_stop:
+                distance = haversine(
+                    current_location.latitude,
+                    current_location.longitude,
+                    next_stop.latitude,
+                    next_stop.longitude
+                )
 
-                is_sharing = Trip.objects.filter(
-                    bus=bus,
-                    status='in_progress',
-                    end_time__isnull=True
-                ).exists()
+                distance_to_next = f"{distance:.1f} km"
 
-                context.update({
-                    'driver': driver_profile,
-                    'bus': bus,
-                    'schedule': schedule,
-                    'stops': stops,
-                    'current_stop': current_stop,
-                    'next_stop': next_stop,
-                    'current_location': current_location,
-                    'is_sharing': is_sharing,
-                    'eta': eta,
-                    'distance': distance_to_next,
-                })
-            else:
-                context['error'] = 'No bus assigned to you.'
+                avg_speed = 30  # km/h
+                eta_minutes = int((distance / avg_speed) * 60)
+
+                if eta_minutes < 1:
+                    eta = "Less than 1 min"
+                elif eta_minutes < 60:
+                    eta = f"{eta_minutes} min"
+                else:
+                    eta = f"{eta_minutes // 60}h {eta_minutes % 60}m"
+
+            is_sharing = Trip.objects.filter(
+                bus=bus,
+                status='in_progress',
+                end_time__isnull=True
+            ).exists()
+
+            context.update({
+                'driver': driver_profile,
+                'bus': bus,
+                'schedule': schedule,
+                'stops': stops,
+                'current_stop': current_stop,
+                'next_stop': next_stop,
+                'current_location': current_location,
+                'is_sharing': is_sharing,
+                'eta': eta,
+                'distance': distance_to_next,
+            })
 
         except ObjectDoesNotExist:
-            context['error'] = 'Driver profile not found.'
+            context['error'] = "Driver profile not found."
 
         return render(request, 'driver/dashboard.html', context)
 
-    # STUDENT & PARENT DASHBOARD
-    elif user.user_type == 'student' or user.user_type == 'parent':
+    # -------------------- STUDENT & PARENT DASHBOARD --------------------
+    elif user.user_type in ['student', 'parent']:
+
         try:
             if user.user_type == 'student':
                 profile = user.student_profile
             else:
-                profile = StudentProfile.objects.filter(parent=user).first()
-
-            if profile and profile.assigned_bus:
-                bus = profile.assigned_bus
-
-                current_location = BusLocation.objects.filter(bus=bus).last()
-
-                # ✅ FIXED HERE ALSO
-                today_day = timezone.now().strftime('%A')
-
-                schedule = Schedule.objects.filter(
-                    bus=bus,
-                    day=today_day,
-                    is_active=True
+                profile = StudentProfile.objects.filter(
+                    parents__user=user
                 ).first()
 
-                stops = None
-                if schedule and schedule.route:
-                    stops = schedule.route.stops.all().order_by('sequence')
+            if not profile or not profile.assigned_bus:
+                context['error'] = "No bus assigned to you."
+                return render(request, 'student/dashboard.html', context)
 
-                context.update({
-                    'profile': profile,
-                    'bus': bus,
-                    'bus_location': current_location,
-                    'schedule': schedule,
-                    'stops': stops,
-                    'eta': "Not available",
-                    'user_type': user.user_type,
-                })
-            else:
-                context['error'] = 'No bus assigned to you.'
+            bus = profile.assigned_bus
+            current_location = BusLocation.objects.filter(bus=bus).last()
+
+            today_day = timezone.now().strftime('%A')
+
+            schedule = Schedule.objects.filter(
+                bus=bus,
+                day=today_day,
+                is_active=True
+            ).first()
+
+            stops = None
+            if schedule and schedule.route:
+                stops = schedule.route.stops.all().order_by('sequence')
+
+            context.update({
+                'profile': profile,
+                'bus': bus,
+                'bus_location': current_location,
+                'schedule': schedule,
+                'stops': stops,
+                'eta': "Live tracking enabled",
+                'user_type': user.user_type,
+            })
 
         except ObjectDoesNotExist:
-            context['error'] = 'Profile not found.'
+            context['error'] = "Profile not found."
 
         return render(request, 'student/dashboard.html', context)
 
+    # Fallback
     return render(request, 'dashboard.html', context)
 
 @login_required
