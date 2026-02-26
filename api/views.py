@@ -13,7 +13,7 @@ from django.contrib.auth import authenticate, login, logout
 
 from accounts.models import User, StudentProfile, DriverProfile, ParentProfile
 from buses.models import Bus, Route, Stop, Schedule, BusMaintenance
-from tracking.models import LocationHistory, Trip, TripPoint, Geofence, GeofenceEvent
+from tracking.models import LocationHistory, Trip, TripPoint, Geofence, GeofenceEvent, Issue
 from notifications.models import Notification, NotificationPreference
 
 from .serializers import (
@@ -29,7 +29,7 @@ from .serializers import (
     NotificationSerializer, NotificationCreateSerializer, NotificationPreferenceSerializer,
     AdminDashboardSerializer, DriverDashboardSerializer, StudentDashboardSerializer,
     PublicBusLocationSerializer, PublicStatsSerializer,
-    PasswordChangeSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer
+    PasswordChangeSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer,IssueSerializer
 )
 
 from .permissions import (

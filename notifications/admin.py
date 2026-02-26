@@ -105,11 +105,11 @@ class NotificationTemplateAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('SMS Template', {
-            'fields': ('sms_template'),
+            'fields': ('sms_template',),
             'classes': ('collapse',)
         }),
         ('Push Template', {
-            'fields': ('push_template'),
+            'fields': ('push_template',),
             'classes': ('collapse',)
         }),
     )

@@ -17,7 +17,7 @@ router.register(r'schedules', views.ScheduleViewSet, basename='schedule')
 router.register(r'trips', views.TripViewSet, basename='trip')
 router.register(r'locations', views.LocationHistoryViewSet, basename='location')
 router.register(r'notifications', views.NotificationViewSet, basename='notification')
-
+router.register(r'issues', views.IssueViewSet, basename='issue')
 urlpatterns = [
     # Auth endpoints
     path('auth/login/', views.LoginView.as_view(), name='api_login'),
@@ -41,5 +41,4 @@ urlpatterns = [
     
     # Include router URLs
     path('', include(router.urls)),
-    router.register(r'issues', views.IssueViewSet, basename='issue')
 ]

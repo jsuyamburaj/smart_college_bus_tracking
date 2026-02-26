@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from accounts.models import User, StudentProfile, DriverProfile, ParentProfile
 from buses.models import Bus, Route, Stop, Schedule, BusMaintenance
-from tracking.models import LocationHistory, Trip, TripPoint, Geofence, GeofenceEvent
+from tracking.models import Issue, LocationHistory, Trip, TripPoint, Geofence, GeofenceEvent
 from notifications.models import Notification, NotificationPreference
 
 User = get_user_model()
@@ -607,3 +607,17 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         if attrs['new_password'] != attrs['confirm_password']:
             raise serializers.ValidationError({"new_password": "Passwords don't match."})
         return attrs
+
+class IssueSerializer(serializers.ModelSerializer):
+    bus_number = serializers.CharField(source='bus.bus_number', read_only=True)
+    route_name = serializers.CharField(source='route.name', read_only=True)
+    reported_by_name = serializers.CharField(source='reported_by.get_full_name', read_only=True)
+    
+    class Meta:
+        model = Issue
+        fields = [
+            'id', 'bus', 'bus_number', 'route', 'route_name',
+            'reported_by', 'reported_by_name', 'issue_type',
+            'description', 'status', 'created_at'
+        ]
+        read_only_fields = ['created_at']
