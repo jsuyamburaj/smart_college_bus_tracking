@@ -941,7 +941,14 @@ class DashboardView(APIView):
                 'recent_notifications': NotificationSerializer(notifications, many=True).data
             }
             
-            serializer = StudentDashboardSerializer(data)
+            serializer = StudentDashboardSerializer({
+                'student_info': student_profile,
+                'bus_info': bus,
+                'today_schedule': schedule,
+                'bus_location': bus_location,
+                'estimated_arrival': estimated_arrival,
+                'recent_notifications': notifications
+            })
             return Response(serializer.data)
             
         except StudentProfile.DoesNotExist:

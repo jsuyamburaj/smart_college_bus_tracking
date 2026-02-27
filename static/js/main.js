@@ -12,6 +12,21 @@ document.addEventListener('DOMContentLoaded', function () {
     loadInitialData();
 });
 
+function checkNotificationPermission() {
+    if (!("Notification" in window)) {
+        console.log("This browser does not support notifications.");
+        return;
+    }
+
+    if (Notification.permission === "default") {
+        Notification.requestPermission().then(permission => {
+            console.log("Notification permission:", permission);
+        });
+    } else {
+        console.log("Notification permission already:", Notification.permission);
+    }
+}
+
 // Application initialization
 function initializeApplication() {
     // Load logged-in user data (if available)

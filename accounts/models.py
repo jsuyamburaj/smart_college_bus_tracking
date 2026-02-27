@@ -36,8 +36,8 @@ class StudentProfile(models.Model):
     
     phone = models.CharField(max_length=15, null=True, blank=True)  # <-- added
     emergency_name = models.CharField(max_length=100, null=True, blank=True)  # <-- added
-    emergency_phone = models.CharField(max_length=15, null=True, blank=True)  # <-- added
-
+    emergency_contact = models.CharField(max_length=15, null=True, blank=True)  # <-- added
+    created_at = models.DateTimeField(auto_now_add=True)  # <-- added
     assigned_bus = models.ForeignKey(
         'buses.Bus',
         on_delete=models.SET_NULL,
