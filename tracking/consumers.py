@@ -167,7 +167,7 @@ class StudentTrackingConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_student(self):
         try:
-            return StudentProfile.objects.get(id=self.student_id)
+            return StudentProfile.objects.get(id=int(self.student_id))
         except StudentProfile.DoesNotExist:
             return None
 
